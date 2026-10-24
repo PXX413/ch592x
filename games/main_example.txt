@@ -1,0 +1,213 @@
+/**************************************************************************
+ * main.c —— CH592X 小游戏机（菜单 + 2048 + 跑酷 + 雷霆战机）
+ *
+ * 这个文件可以直接替换工程里的 User/Main.c。
+ *
+ * 操作总览：
+ *     菜单：   编码器旋转 / K4 K6 = 上下选，K5 / 编码器按键 = 开始
+ *              K1 K3 = 难度 -，K7 = 音效开关
+ *     游戏里： K9 = 回菜单，K7 = 暂停
+ *              （每个游戏的具体键位见各自 .h 或 README）
+ *     成绩页： 任意键回菜单
+ *
+ * 主循环节奏：Game_Task() 每 1ms 扫一次键/编码器，
+ *             游戏逻辑固定 20ms 一帧（GAME_FRAME_MS）。
+ **************************************************************************/
+
+#include "CH59x_common.h"
+#include "game_port.h"
+#include "game_score.h"
+#include "game_menu.h"
+#include "game_2048.h"
+#include "game_runner.h"
+#include "game_thunder.h"
+
+/*==========================================================================
+ * 当前状态
+ *========================================================================*/
+typedef enum
+{
+    APP_MENU = 0,
+    APP_2048,
+    APP_RUNNER,
+    APP_THUNDER
+} AppMode_t;
+
+static AppMode_t s_mode = APP_MENU;
+static uint32_t  s_last_frame_ms;
+static uint32_t  s_end_ms;              /* 游戏结束的时刻（用来停顿一下再出成绩） */
+static bool      s_waiting_end;         /* 已经结束，正在等停顿 */
+
+/*==========================================================================
+ * 工具
+ *========================================================================*/
+static void app_start(uint8_t game_id)
+{
+    switch (game_id)
+    {
+        case GAME_ID_2048:   G2048_Enter(); s_mode = APP_2048;   break;
+        case GAME_ID_RUNNER: RUN_Enter();   s_mode = APP_RUNNER; break;
+        case GAME_ID_THUNDER:THD_Enter();   s_mode = APP_THUNDER;break;
+        default:             s_mode = APP_MENU;                  break;
+    }
+
+    s_waiting_end = false;
+    Game_FlushEvents();
+    s_last_frame_ms = Game_Millis();
+}
+
+static bool app_is_over(void)
+{
+    switch (s_mode)
+    {
+        case APP_2048:   return G2048_IsOver();
+        case APP_RUNNER: return RUN_IsOver();
+        case APP_THUNDER:return THD_IsOver();
+        default:         return false;
+    }
+}
+
+static uint32_t app_score(void)
+{
+    switch (s_mode)
+    {
+        case APP_2048:   return G2048_GetScore();
+        case APP_RUNNER: return RUN_GetScore();
+        case APP_THUNDER:return THD_GetScore();
+        default:         return 0u;
+    }
+}
+
+static uint8_t app_id(void)
+{
+    switch (s_mode)
+    {
+        case APP_2048:   return GAME_ID_2048;
+        case APP_RUNNER: return GAME_ID_RUNNER;
+        case APP_THUNDER:return GAME_ID_THUNDER;
+        default:         return GAME_ID_NONE;
+    }
+}
+
+static void app_frame(void)
+{
+    switch (s_mode)
+    {
+        case APP_MENU:
+            GM_Update(GAME_FRAME_MS);
+            GM_Draw();
+            break;
+
+        case APP_2048:
+            G2048_Update(GAME_FRAME_MS);
+            G2048_Draw();
+            break;
+
+        case APP_RUNNER:
+            RUN_Update(GAME_FRAME_MS);
+            RUN_Draw();
+            break;
+
+        case APP_THUNDER:
+            THD_Update(GAME_FRAME_MS);
+            THD_Draw();
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void app_handle_key(const GameKeyEvent_t *ev)
+{
+    if (s_mode == APP_MENU)
+    {
+        if (GM_HandleKey(ev))
+        {
+            app_start(GM_GetSelected());
+        }
+        return;
+    }
+
+    {
+        bool leave = false;
+
+        switch (s_mode)
+        {
+            case APP_2048:   leave = G2048_HandleKey(ev); break;
+            case APP_RUNNER: leave = RUN_HandleKey(ev);   break;
+            case APP_THUNDER:leave = THD_HandleKey(ev);   break;
+            default:         break;
+        }
+
+        if (leave)
+        {
+            s_mode = APP_MENU;
+            s_waiting_end = false;
+            GM_Enter();
+            Game_FlushEvents();
+            s_last_frame_ms = Game_Millis();
+        }
+    }
+}
+
+/*==========================================================================
+ * main
+ *========================================================================*/
+int main(void)
+{
+    SetSysClock(CLK_SOURCE_PLL_60MHz);
+
+    Game_Init(GAME_PORTRAIT);                       /* 键盘 + 编码器 + 屏 */
+
+    Game_Srand(SYS_GetSysTickCnt() ^ 0x1234ABCDu);  /* 每次开机随机不同 */
+    GS_Init();                                      /* 读最高分/设置 */
+
+    GM_Enter();                                     /* 进菜单 */
+    s_last_frame_ms = Game_Millis();
+
+    while (1)
+    {
+        GameKeyEvent_t ev;
+
+        Game_Task();                                /* 1ms 节拍：扫键 + 延时 */
+
+        /* ---- 固定 20ms 一帧 ---- */
+        if ((uint32_t)(Game_Millis() - s_last_frame_ms) < GAME_FRAME_MS)
+        {
+            continue;
+        }
+        s_last_frame_ms += GAME_FRAME_MS;
+
+        /* ---- 按键事件 ---- */
+        while (Game_PollEvent(&ev))
+        {
+            app_handle_key(&ev);
+        }
+
+        /* ---- 一帧逻辑 + 画面 ---- */
+        app_frame();
+
+        /* ---- 游戏结束：稍等一下再显示成绩页 ---- */
+        if (s_mode != APP_MENU && app_is_over())
+        {
+            if (!s_waiting_end)
+            {
+                s_waiting_end = true;
+                s_end_ms = Game_Millis();
+            }
+            else if ((uint32_t)(Game_Millis() - s_end_ms) >= 700u)
+            {
+                uint8_t  id = app_id();
+                uint32_t sc = app_score();
+
+                s_waiting_end = false;
+                s_mode = APP_MENU;
+                Game_FlushEvents();
+                GM_ShowResult(id, sc);              /* 存最高分 + 显示成绩页 */
+            }
+        }
+    }
+}
+
+/******************* (C) CH592X 小游戏机 *****************/

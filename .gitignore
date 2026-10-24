@@ -1,0 +1,28 @@
+# 构建产物（MounRiver Studio / Make）
+/obj/
+/obj_cmdline/
+**/obj/
+**/obj_cmdline/
+*.o
+*.d
+*.elf
+*.lst
+*.map
+
+# MounRiver Studio 工作区元数据
+/.mrs/
+**/.mrs/
+
+# 2026-10-19 的旧工程副本，源码以仓库根目录为准
+/ch592x/
+
+# 编辑器和手动备份
+*.bak
+*.bak-*
+*~
+*.swp
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store

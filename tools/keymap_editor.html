@@ -1,0 +1,3746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="GBK">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CH592X 按键映射编辑器</title>
+<style>
+/* ============================================================
+   CH592X 键盘按键映射编辑器 —— 浅色简洁风
+   单文件、零依赖、双击即用
+   ============================================================ */
+
+:root{
+  --bg:        #f5f7fa;
+  --panel:     #ffffff;
+  --border:    #e3e8ef;
+  --border-2:  #cdd5e0;
+  --text:      #1f2937;
+  --text-2:    #5b6779;
+  --text-3:    #98a2b3;
+  --accent:    #2563eb;
+  --accent-bg: #eff4ff;
+  --accent-bd: #bfd3ff;
+  --ok:        #0d9488;
+  --ok-bg:     #e6faf7;
+  --warn:      #d97706;
+  --warn-bg:   #fff8eb;
+  --danger:    #dc2626;
+  --danger-bg: #fef2f2;
+  --cell-empty:#f0f2f5;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+*{ box-sizing:border-box; }
+
+html,body{ margin:0; padding:0; }
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size:14px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- 顶部栏 ---------- */
+header{
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  padding:14px 24px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+header .logo{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,#3b82f6,#2563eb);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:15px;flex:none;
+  letter-spacing:-.5px;
+}
+header h1{
+  font-size:16px;margin:0;font-weight:600;letter-spacing:.2px;
+}
+header .sub{
+  font-size:12px;color:var(--text-3);margin-left:2px;
+}
+header .spacer{ flex:1; }
+header .chip{
+  font-size:12px;padding:3px 9px;border-radius:20px;
+  background:var(--accent-bg);color:var(--accent);
+  border:1px solid var(--accent-bd);font-weight:500;
+}
+
+/* ---------- 布局 ---------- */
+.wrap{
+  max-width:1400px;
+  margin:0 auto;
+  padding:20px 24px 80px;
+  display:grid;
+  grid-template-columns: minmax(0,1fr) 460px;
+  gap:20px;
+  align-items:start;
+}
+@media (max-width:1180px){
+  .wrap{ grid-template-columns:1fr; }
+}
+
+/* ---------- 顶部：键盘设置 / 遥控设置 切换（2026-10-15） ---------- */
+.topbar{
+  max-width:1400px;
+  margin:0 auto;
+  padding:14px 24px 0;
+  display:flex;
+  gap:8px;
+  align-items:flex-end;
+  flex-wrap:wrap;
+}
+.toptab{
+  padding:8px 18px;
+  border:1px solid var(--border-2);
+  border-bottom:none;
+  border-radius:9px 9px 0 0;
+  background:#eef2f7;
+  color:var(--text-2);
+  font-size:13.5px;
+  font-family:inherit;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .13s;
+}
+.toptab:hover{ background:#e6ecf5;color:var(--text); }
+.toptab.on{ background:var(--panel);color:var(--accent);border-color:var(--accent-bd); }
+.topbar .tip{ font-size:12px;color:var(--text-3);padding-bottom:8px; }
+/* 遥控设置没有右侧代码栏 —— 收掉那一列，别留一条空白 */
+.wrap.onecol{ grid-template-columns:minmax(0,1fr); }
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  margin-bottom:18px;
+  overflow:hidden;
+}
+.panel > h2{
+  font-size:13px;
+  font-weight:600;
+  margin:0;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  background:#fafbfc;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--text-2);
+  letter-spacing:.3px;
+}
+.panel > h2 .n{
+  width:19px;height:19px;border-radius:5px;
+  background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex:none;
+}
+.panel .body{ padding:16px; }
+
+/* ---------- 组标签页 ---------- */
+.grouptabs{
+  display:flex;gap:6px;flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.grouptab{
+  display:flex;flex-direction:column;gap:1px;
+  padding:7px 13px;
+  border:1px solid var(--border-2);
+  border-radius:8px;
+  background:#fff;
+  cursor:pointer;
+  transition:all .13s;
+  min-width:78px;
+  text-align:left;
+}
+.grouptab:hover{ border-color:var(--accent-bd); background:var(--accent-bg); }
+.grouptab.on{
+  border-color:var(--accent);
+  background:var(--accent);
+  box-shadow:0 2px 8px rgba(37,99,235,.22);
+}
+.grouptab.on .gt-name{ color:#fff; }
+.grouptab.on .gt-idx{ color:rgba(255,255,255,.72); }
+.grouptab .gt-name{
+  font-size:13px;font-weight:600;color:var(--text);
+  max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.grouptab .gt-idx{
+  font-size:10px;color:var(--text-3);font-family:var(--mono);
+}
+
+/* ---------- 3x3 网格 ---------- */
+.gridwrap{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) 250px;
+  gap:18px;
+}
+@media (max-width:820px){ .gridwrap{ grid-template-columns:1fr; } }
+
+.kgrid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:9px;
+  aspect-ratio:1/1;
+  max-width:420px;
+}
+.kcell{
+  position:relative;
+  border:1.5px solid var(--border-2);
+  border-radius:9px;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:all .13s;
+  padding:6px 4px;
+  min-height:0;
+  overflow:hidden;
+}
+.kcell:hover{
+  border-color:var(--accent-bd);
+  background:var(--accent-bg);
+  transform:translateY(-1px);
+  box-shadow:0 3px 10px rgba(37,99,235,.1);
+}
+.kcell.sel{
+  border-color:var(--accent);
+  background:var(--accent-bg);
+  box-shadow:0 0 0 2px rgba(37,99,235,.16);
+}
+.kcell.empty{ background:var(--cell-empty); }
+.kcell .kpos{
+  position:absolute;top:3px;left:6px;
+  font-size:9px;font-family:var(--mono);color:var(--text-3);
+  letter-spacing:.4px;
+}
+.kcell .kname{
+  font-size:15px;font-weight:600;color:var(--text);
+  line-height:1.15;text-align:center;
+  word-break:break-word;
+}
+.kcell.empty .kname{ color:var(--text-3);font-weight:400;font-size:13px; }
+.kcell .khex{
+  font-size:10px;font-family:var(--mono);color:var(--text-3);
+  margin-top:3px;
+}
+.kcell .kmodified{
+  position:absolute;top:4px;right:5px;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--warn);
+}
+.kcell .kcombo{
+  position:absolute;bottom:3px;right:5px;
+  font-size:8px;font-weight:600;
+  color:#fff;background:var(--accent);
+  padding:0 4px;border-radius:3px;
+  letter-spacing:.3px;
+}
+.kcell .kname.small{ font-size:11px; }
+.kcell.capturing{
+  border-color:var(--ok);
+  box-shadow:0 0 0 3px rgba(13,148,136,.18);
+  animation:capPulse 1.1s ease-in-out infinite;
+}
+@keyframes capPulse{
+  0%,100%{ box-shadow:0 0 0 3px rgba(13,148,136,.18); }
+  50%    { box-shadow:0 0 0 6px rgba(13,148,136,.08); }
+}
+
+/* ---------- 编辑区 ---------- */
+.editinfo{
+  border:1px solid var(--border);
+  border-radius:9px;
+  padding:12px;
+  background:#fafbfc;
+  font-size:13px;
+}
+.editinfo .row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:4px 0;
+}
+.editinfo .row .lbl{ color:var(--text-2);font-size:12px; }
+.editinfo .row .val{ font-family:var(--mono);font-weight:600; }
+.editinfo .row .val.big{ font-size:16px;color:var(--accent); }
+
+/* ---------- 搜索 + 值列表 ---------- */
+.searchin{
+  width:100%;
+  padding:8px 11px;
+  border:1px solid var(--border-2);
+  border-radius:8px;
+  font-size:13px;
+  font-family:inherit;
+  outline:none;
+  transition:border-color .13s, box-shadow .13s;
+  margin-bottom:10px;
+}
+.searchin:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(37,99,235,.1);
+}
+.valuelist{
+  max-height:330px;
+  overflow-y:auto;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:#fff;
+}
+.valitem{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 11px;
+  cursor:pointer;
+  border-bottom:1px solid #f2f5f8;
+  transition:background .1s;
+}
+.valitem:last-child{ border-bottom:none; }
+.valitem:hover{ background:var(--accent-bg); }
+.valitem.on{ background:var(--accent); color:#fff; }
+.valitem.on .vhex{ color:rgba(255,255,255,.75); }
+.valitem.on .vcat{ color:rgba(255,255,255,.72); border-color:rgba(255,255,255,.4); }
+.valitem .vname{
+  font-weight:600;font-size:13px;min-width:52px;
+}
+.valitem .vhex{
+  font-family:var(--mono);font-size:11px;color:var(--text-3);
+  margin-left:auto;
+}
+.valitem .vcat{
+  font-size:10px;color:var(--text-3);
+  border:1px solid var(--border);border-radius:4px;
+  padding:1px 5px;
+}
+.valuelist::-webkit-scrollbar{ width:8px; }
+.valuelist::-webkit-scrollbar-thumb{ background:#d5dbe4;border-radius:4px; }
+.valuelist::-webkit-scrollbar-thumb:hover{ background:#bcc5d2; }
+
+/* ---------- 按钮 ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:7px 14px;
+  border:1px solid var(--border-2);
+  border-radius:7px;
+  background:#fff;
+  color:var(--text);
+  font-size:13px;
+  font-family:inherit;
+  font-weight:500;
+  cursor:pointer;
+  transition:all .13s;
+  white-space:nowrap;
+}
+.btn:hover{ border-color:var(--accent-bd);background:var(--accent-bg);color:var(--accent); }
+.btn:active{ transform:translateY(1px); }
+.btn.primary{
+  background:var(--accent);border-color:var(--accent);color:#fff;
+}
+.btn.primary:hover{ background:#1d4ed8;border-color:#1d4ed8;color:#fff; }
+.btn.ghost{ border-color:var(--border);color:var(--text-2); }
+.btn.ghost:hover{ background:#f5f7fa;color:var(--text); }
+.btn.danger:hover{ border-color:#fca5a5;background:var(--danger-bg);color:var(--danger); }
+.btn.sm{ padding:5px 10px;font-size:12px; }
+.btn:disabled{ opacity:.42;cursor:not-allowed;transform:none; }
+.btn:disabled:hover{ border-color:var(--border-2);background:#fff;color:var(--text); }
+
+.btnrow{ display:flex;gap:8px;flex-wrap:wrap; }
+
+/* ---------- 键盘宏（2026-10-15） ---------- */
+.mac-tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.mac-tab{ padding:6px 13px; border:1px solid var(--border-2); border-radius:7px; background:#fff;
+  font-size:12.5px; font-family:inherit; cursor:pointer; color:var(--text-2); }
+.mac-tab:hover{ background:#f5f7fa; color:var(--text); }
+.mac-tab.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.mac-tab .nn{ opacity:.8; margin-left:5px; font-size:11px; }
+.mac-step{ display:grid; grid-template-columns:30px 130px minmax(0,1fr) 52px; gap:6px;
+  align-items:center; padding:4px 0; border-top:1px dashed var(--border); }
+.mac-step:first-child{ border-top:none; }
+.mac-step .ix{ font-size:11.5px; color:var(--text-3); }
+.mac-step select{ height:26px; font-size:12px; }
+.mac-step.off{ opacity:.45; }
+.mac-bind{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px 10px; }
+.mac-bind label{ font-size:11.5px; color:var(--text-2); display:flex; align-items:center; gap:5px; }
+.mac-bind select{ height:25px; font-size:12px; flex:1; min-width:0; }
+.btn.mac-rec{ background:#fff7ed; border-color:#fdba74; color:#9a3412; }
+
+/* ---------- 代码输出 ---------- */
+/* 【2026-10-15】这里原来有 position:sticky;top:76px —— 页面往下滚时代码框会钉在
+ * 视口顶部，后面的「如何应用到工程」就从它上面压过去，看着很乱。
+ * 现在取消固定，「如何应用到工程」和代码框一起待在正常文档流里，随页面滚动。 */
+pre.code{
+  margin:0;
+  padding:14px;
+  background:#fbfcfd;
+  border-top:1px solid var(--border);
+  font-family:var(--mono);
+  font-size:11.5px;
+  line-height:1.62;
+  color:#334155;
+  /* 【2026-10-15】去掉 max-height + overflow:auto：原来代码框有自己的竖向滚动条，
+   * 滚轮会先滚它、不滚页面（和右侧「如何应用」不同步）。现在整块跟着页面滚，
+   * 只保留横向滚动，免得长行撑破布局。 */
+  overflow-x:auto;
+  tab-size:4;
+}
+pre.code .kw{ color:#7c3aed; }
+pre.code .num{ color:#0369a1; }
+pre.code .cmt{ color:#94a3b8;font-style:italic; }
+pre.code .str{ color:#0d9488; }
+
+.codehead{
+  padding:10px 14px;
+  background:#fafbfc;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;
+}
+.codehead .fname{
+  font-family:var(--mono);font-size:12px;color:var(--text-2);
+  font-weight:600;
+}
+.codehead .spacer{ flex:1; }
+
+/* 代码面板标签页 */
+.codetabs{ display:flex;gap:4px; }
+.codetab{
+  position:relative;
+  padding:5px 12px;border-radius:6px;
+  border:1px solid transparent;
+  background:transparent;
+  font-size:12px;font-family:inherit;font-weight:500;
+  color:var(--text-2);cursor:pointer;
+  transition:all .12s;
+}
+.codetab:hover{ background:#eef2f7;color:var(--text); }
+.codetab.on{
+  background:var(--accent);color:#fff;
+  border-color:var(--accent);
+}
+.dotbadge{
+  position:absolute;top:2px;right:2px;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--warn);
+  animation:pulse 1.4s ease-in-out infinite;
+}
+.codetab.on .dotbadge{ background:#fde68a; }
+
+/* ---------- 键盘捕获面板 ---------- */
+.capture{
+  margin-top:14px;
+  border:1.5px solid var(--accent);
+  border-radius:10px;
+  background:linear-gradient(180deg,#f8faff,#eff4ff);
+  overflow:hidden;
+  animation:capIn .18s ease-out;
+}
+@keyframes capIn{ from{opacity:0;transform:translateY(-4px);} to{opacity:1;transform:none;} }
+
+.cap-head{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 14px;
+  border-bottom:1px solid var(--accent-bd);
+  background:rgba(255,255,255,.6);
+  flex-wrap:wrap;
+}
+.cap-title{
+  font-size:12px;font-weight:600;color:var(--accent);
+  display:flex;align-items:center;gap:6px;
+}
+.cap-title::before{
+  content:"";width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  animation:pulse 1.1s ease-in-out infinite;
+}
+@keyframes pulse{ 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.35;transform:scale(.8);} }
+.cap-target{
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  background:var(--accent);color:#fff;
+  padding:2px 9px;border-radius:5px;
+}
+.cap-head .spacer{ flex:1; }
+.cap-tip{ font-size:11px;color:var(--text-3); }
+.cap-tip b{ color:var(--text-2); }
+
+.cap-preview{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 18px;
+  flex-wrap:wrap;
+}
+.cap-mods{ display:flex;gap:6px; }
+.cap-mod{
+  font-size:12px;font-family:var(--mono);font-weight:600;
+  padding:5px 11px;border-radius:6px;
+  border:1.5px solid var(--border-2);
+  background:#fff;color:var(--text-3);
+  transition:all .1s;
+  user-select:none;
+}
+.cap-mod.on{
+  border-color:var(--accent);background:var(--accent);color:#fff;
+  box-shadow:0 0 0 3px rgba(37,99,235,.14);
+}
+.cap-plus{ font-size:15px;color:var(--text-3);font-weight:600; }
+
+.cap-key{
+  min-width:110px;text-align:center;
+  padding:9px 18px;border-radius:8px;
+  border:2px dashed var(--border-2);
+  background:#fff;
+  font-size:20px;font-weight:700;color:var(--text-3);
+  font-family:var(--mono);
+  transition:all .12s;
+}
+.cap-key.on{
+  border-style:solid;
+  border-color:var(--accent);
+  background:var(--accent-bg);
+  color:var(--accent);
+  box-shadow:0 0 0 4px rgba(37,99,235,.1);
+}
+.cap-key.bad{
+  border-color:var(--warn);background:var(--warn-bg);color:var(--warn);
+  font-size:13px;
+}
+
+.cap-code{
+  font-family:var(--mono);font-size:15px;font-weight:700;
+  color:var(--ok);background:var(--ok-bg);
+  border:1px solid #a7e8e0;
+  padding:8px 14px;border-radius:7px;
+  min-width:88px;text-align:center;
+}
+
+/* ---------- 提示条 ---------- */
+.toast{
+  position:fixed;
+  bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:#1f2937;color:#fff;
+  padding:10px 20px;border-radius:9px;
+  font-size:13px;
+  box-shadow:0 8px 26px rgba(0,0,0,.2);
+  opacity:0;pointer-events:none;
+  transition:all .24s cubic-bezier(.2,.9,.3,1.2);
+  z-index:999;
+  display:flex;align-items:center;gap:8px;
+}
+.toast.show{ opacity:1;transform:translateX(-50%) translateY(0); }
+.toast .dot{ width:7px;height:7px;border-radius:50%;background:#34d399; }
+
+/* ---------- 说明文字 ---------- */
+.hint{
+  font-size:12px;color:var(--text-3);line-height:1.7;
+  margin:0 0 10px;
+}
+.hint code{
+  font-family:var(--mono);background:#eef2f7;padding:1px 5px;
+  border-radius:4px;font-size:11px;color:var(--text-2);
+}
+.hint b{ color:var(--text-2);font-weight:600; }
+
+/* ---------- 组名编辑 ---------- */
+.gname-row{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  background:#fafbfc;
+}
+.gname-row label{ font-size:12px;color:var(--text-2);flex:none; }
+.gname-row input{
+  flex:1;
+  padding:6px 10px;
+  border:1px solid var(--border-2);
+  border-radius:6px;
+  font-size:13px;font-family:var(--mono);
+  outline:none;
+  min-width:0;
+}
+.gname-row input:focus{ border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+.gname-row .len{ font-size:11px;color:var(--text-3);font-family:var(--mono);flex:none; }
+
+/* ---------- 标签 ---------- */
+.badge{
+  font-size:10px;padding:1px 6px;border-radius:4px;
+  font-weight:600;letter-spacing:.2px;
+}
+.badge.mod{ background:var(--warn-bg);color:var(--warn);border:1px solid #fde68a; }
+.badge.def{ background:#eef2f7;color:var(--text-3);border:1px solid var(--border); }
+
+/* ---------- 统计 ---------- */
+.stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  margin-bottom:14px;
+}
+.stat{
+  border:1px solid var(--border);border-radius:8px;
+  padding:9px 11px;background:#fafbfc;
+}
+.stat .sv{ font-size:18px;font-weight:700;font-family:var(--mono);color:var(--accent); }
+.stat .sl{ font-size:11px;color:var(--text-3);margin-top:1px; }
+
+/* ---------- 折叠 ---------- */
+details.sec{
+  border:1px solid var(--border);border-radius:9px;
+  margin-top:12px;background:#fff;overflow:hidden;
+}
+details.sec summary{
+  padding:10px 14px;cursor:pointer;font-size:13px;font-weight:500;
+  color:var(--text-2);background:#fafbfc;list-style:none;
+  display:flex;align-items:center;gap:7px;
+}
+details.sec summary::-webkit-details-marker{ display:none; }
+details.sec summary::before{
+  content:">";font-size:10px;color:var(--text-3);transition:transform .15s;
+}
+details.sec[open] summary::before{ transform:rotate(90deg); }
+details.sec .body{ padding:14px;border-top:1px solid var(--border); }
+
+/* ---------- 设备直连面板 ---------- */
+.dev-status{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 12px;border:1px solid var(--border);border-radius:8px;
+  background:#fafbfc;margin-bottom:12px;
+}
+.dev-dot{
+  width:9px;height:9px;border-radius:50%;background:#c9ced6;
+  flex:0 0 auto;transition:background .2s;
+}
+.dev-dot.on{ background:#22a06b;box-shadow:0 0 0 3px rgba(34,160,107,.16); }
+.dev-dot.busy{ background:#e0a020;box-shadow:0 0 0 3px rgba(224,160,32,.16); }
+.dev-dot.err{ background:#d9534f;box-shadow:0 0 0 3px rgba(217,83,79,.16); }
+.dev-label{ font-size:13px;font-weight:500;color:var(--text-1); }
+.dev-sub{ font-size:11.5px;color:var(--text-3);font-family:var(--mono); }
+
+.dev-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+  gap:8px;margin-bottom:12px;
+}
+.dev-grid button{ width:100%; }
+
+.dev-log{
+  border:1px solid var(--border);border-radius:8px;background:#fcfcfd;
+  max-height:190px;overflow-y:auto;padding:8px 10px;
+  font-family:var(--mono);font-size:11.5px;line-height:1.65;
+}
+.dev-log div{ white-space:pre-wrap;word-break:break-all; }
+.dev-log .t-tx{ color:#0b6bcb; }
+.dev-log .t-rx{ color:#1a7f4b; }
+.dev-log .t-er{ color:#c0392b; }
+.dev-log .t-ok{ color:#1a7f4b;font-weight:600; }
+.dev-log .t-in{ color:#8a8f99; }
+
+.dev-box{
+  border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+  margin-bottom:12px;background:#fff;
+}
+.dev-box h3{
+  font-size:12px;font-weight:600;color:var(--text-2);
+  margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px;
+}
+.dev-kv{
+  display:grid;grid-template-columns:auto 1fr;gap:3px 12px;
+  font-size:12px;font-family:var(--mono);
+}
+.dev-kv .k{ color:var(--text-3); }
+.dev-kv .v{ color:var(--text-1); }
+
+.dev-note{
+  font-size:11.5px;color:var(--text-3);line-height:1.6;margin:0;
+}
+.dev-unsupported{
+  border:1px solid #f0d9a8;background:#fffbf0;border-radius:8px;
+  padding:10px 12px;font-size:12px;color:#8a6d3b;line-height:1.6;
+}
+/* ---- 遥控模式配置面板（第 6 块）---- */
+.rc-sec{ border-top:1px solid var(--line); margin-top:14px; padding-top:12px; }
+.rc-h{ font-weight:700; font-size:13px; margin-bottom:8px; color:#111827; }
+.rc-n{ display:inline-block; width:18px; height:18px; line-height:18px; text-align:center;
+       border-radius:4px; background:#eef2ff; color:#3730a3; font-size:11px; margin-right:6px; }
+.rc-sub{ font-weight:400; font-size:12px; color:#6b7280; margin-left:6px; }
+.rc-cat .row,.rc-bind .row{ display:flex; gap:6px; align-items:center; margin-bottom:5px; }
+.rc-in{ height:26px; padding:0 6px; border:1px solid var(--line); border-radius:5px;
+        font:inherit; font-size:12px; background:#fff; width:110px; }
+.rc-in.num{ width:56px; text-align:center; }
+.rc-in.bad{ border-color:#dc2626; background:#fef2f2; }
+.rc-sel{ height:26px; padding:0 4px; border:1px solid var(--line); border-radius:5px;
+         font:inherit; font-size:12px; background:#fff; max-width:160px; }
+.rc-tbl{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.rc-cell{ border:1px solid var(--line); border-radius:6px; padding:5px; background:#fafafa; }
+.rc-cell .lbl{ font-size:11px; color:#6b7280; margin-bottom:4px; }
+.rc-cell select{ width:100%; height:24px; font-size:11px; margin-bottom:4px;
+                 border:1px solid var(--line); border-radius:4px; background:#fff; }
+.rc-cell input{ width:100%; height:22px; text-align:center; font-size:12px;
+                border:1px solid var(--line); border-radius:4px; box-sizing:border-box; }
+.rc-cell input.bad{ border-color:#dc2626; background:#fef2f2; }
+.rc-x{ border:none; background:transparent; color:#dc2626; cursor:pointer; font-size:14px; padding:0 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CH</div>
+  <div>
+    <h1>CH592X 按键映射编辑器 <span class="sub">Key Mapping Editor</span></h1>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip" id="chip-groups">5 组 × 9 键</span>
+</header>
+
+<!-- 顶部：键盘设置 / 遥控设置 切换（2026-10-15） -->
+<div class="topbar">
+  <button class="toptab on" id="top-kb" data-top="kb">键盘设置</button>
+  <button class="toptab"    id="top-rc" data-top="rc">遥控设置</button>
+  <span class="tip" id="top-tip">键盘设置：改按键映射 / 生成 C 代码</span>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ 左栏：编辑区 ============ -->
+  <div class="colm" id="colleft">
+
+    <!-- 映射组选择 -->
+    <div class="panel">
+      <h2><span class="n">1</span>选择映射组</h2>
+      <div class="gname-row">
+        <label>组名</label>
+        <input id="gname" maxlength="20" spellcheck="false" placeholder="ASCII 名称，最长 20 字符">
+        <span class="len" id="gnamelen">0/20</span>
+      </div>
+      <div class="body">
+        <div class="grouptabs" id="grouptabs"></div>
+        <p class="hint" style="margin:0;">
+          设备端用旋转编码器 CW/CCW 切换映射组，当前组号存在 Flash
+          <code>ui_store</code> 的 <code>map_group</code> 字段。组名在固件里是
+          <code>s_map_name[]</code>，建议用 <b>ASCII 短名</b>（屏上是 8×16 点阵字库，中文会显示成方块）。
+          <br>快捷键：<code>1</code>~<code>9</code> 选键，<code>←</code> <code>→</code> 切换映射组。
+        </p>
+      </div>
+    </div>
+
+    <!-- 3x3 按键网格 -->
+    <div class="panel">
+      <h2><span class="n">2</span>编辑按键映射</h2>
+      <div class="body">
+        <div class="stats">
+          <div class="stat"><div class="sv" id="st-mod">0</div><div class="sl">已改动</div></div>
+          <div class="stat"><div class="sv" id="st-combo">0</div><div class="sl">组合键</div></div>
+          <div class="stat"><div class="sv" id="st-empty">0</div><div class="sl">空键位</div></div>
+          <div class="stat"><div class="sv" id="st-dup">0</div><div class="sl">重复值</div></div>
+        </div>
+        <div class="gridwrap">
+          <div class="kgrid" id="kgrid"></div>
+          <div>
+            <div class="editinfo" id="editinfo">
+              <div class="row"><span class="lbl">未选中按键</span></div>
+              <p class="hint" style="margin:8px 0 0;">
+                点击左侧任一按键，然后在下方列表里选择要映射的键值，
+                或直接按<b>物理键盘</b>录入。
+              </p>
+            </div>
+            <div class="btnrow" style="margin-top:10px;">
+              <button class="btn sm primary" id="btn-capture">键盘录入</button>
+              <button class="btn sm" id="btn-clear">置空此键</button>
+              <button class="btn sm ghost" id="btn-resetkey">恢复默认</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="hint" style="margin:14px 0 0;">
+          <b>怎么用键盘录入：</b>点左边任意按键 → 点「键盘录入」→ 直接按物理键盘上的键
+          （比如按住 <code>Ctrl</code> 再按 <code>C</code>）→ 松开全部按键就写好了，
+          并自动跳到下一个按键，方便连着录 9 个。<br>
+          录入时按 <code>Ctrl+Q</code> 取消；<b>Esc 会被当作普通按键录入</b>（映射到 0x29）。
+        </p>
+
+        <!-- 键盘捕获面板 -->
+        <div class="capture" id="capture" hidden>
+          <div class="cap-head">
+            <span class="cap-title">键盘录入中</span>
+            <span class="cap-target" id="cap-target">K1</span>
+            <span class="spacer"></span>
+            <span class="cap-tip">按下组合键或单个键，松开全部按键即写入 · <b>Ctrl+Q</b> 取消</span>
+          </div>
+          <div class="cap-preview">
+            <div class="cap-mods" id="cap-mods">
+              <span class="cap-mod" data-m="ctrl">Ctrl</span>
+              <span class="cap-mod" data-m="shift">Shift</span>
+              <span class="cap-mod" data-m="alt">Alt</span>
+              <span class="cap-mod" data-m="gui">GUI</span>
+            </div>
+            <span class="cap-plus">+</span>
+            <div class="cap-key" id="cap-key">—</div>
+            <span class="cap-plus">=</span>
+            <div class="cap-code" id="cap-code">0x0000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 键值列表 -->
+    <div class="panel">
+      <h2><span class="n">3</span>选择 HID 键值</h2>
+      <div class="body">
+        <input class="searchin" id="search" placeholder="搜索：数字 / 名称 / 十六进制，如 1、Enter、0x28、Vol">
+        <div class="valuelist" id="valuelist"></div>
+        <p class="hint" style="margin:10px 0 0;">
+          列表与固件 <code>ui_pages2.c</code> 的 <code>s_hid_usage[]</code>
+          <b>完全一致</b>（<span id="usagecount">83</span> 项），设备上旋转编码器能选的键值就是这些。
+          写入 <code>0x00</code> 表示该键不映射任何键。<br>
+          <code>LCtrl</code> / <code>RShft</code> 这类是<b>修饰键</b>：
+          选中后按键只发 modifiers 字节里的位、不占 6 个键码槽位，
+          按住它再按别的键就是组合键。
+        </p>
+      </div>
+    </div>
+
+    <!-- 批量操作 -->
+    <div class="panel">
+      <h2><span class="n">4</span>批量与数据管理</h2>
+      <div class="body">
+        <div class="btnrow">
+          <button class="btn sm" id="btn-fillrow">本组填充选中值</button>
+          <button class="btn sm" id="btn-copytoclip">复制本组</button>
+          <button class="btn sm" id="btn-pasteclip">粘贴到本组</button>
+          <button class="btn sm ghost" id="btn-resetgroup">重置本组</button>
+          <button class="btn sm danger" id="btn-resetall">全部恢复默认</button>
+        </div>
+        <div class="btnrow" style="margin-top:10px;">
+          <button class="btn sm" id="btn-export">导出 JSON</button>
+          <button class="btn sm" id="btn-import">导入 JSON</button>
+          <input type="file" id="filein" accept=".json,application/json" hidden>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== 键盘宏（2026-10-15）======== -->
+    <div class="panel" id="panel-macro">
+      <h2><span class="n">M</span>键盘宏（一个键触发一串按键）</h2>
+      <div class="body">
+        <p class="hint" style="margin:0 0 10px;">
+          宏 = 把一连串按键编成"步骤"，绑到某个物理键上：按一下那个键，键盘自己按顺序敲出来。
+          每步可以是单键，也可以是组合键（如 <b>Ctrl+C</b>）；每步之间 <b>45ms</b>；
+          一共 <b>4 个宏</b>，每个最多 <b>8 步</b>。绑定按映射组分开，现在编的是
+          <b id="mac-groupname">第 1 组</b> 的绑定。<br>
+          <b>注意：</b>设备要跑支持宏的固件（协议次版本 ≥ 2）；连上设备后可在
+          「设备直连」里点「自检」看是否认识宏命令。
+        </p>
+
+        <div class="mac-tabs" id="mac-tabs"></div>
+        <div id="mac-steps"></div>
+
+        <div class="btnrow" style="margin-top:10px;">
+          <button class="btn sm" id="mac-clear">清空此宏</button>
+          <button class="btn sm" id="mac-rec">录制（按 PC 键盘）</button>
+          <span class="spacer"></span>
+          <button class="btn sm" id="mac-read">从设备读宏</button>
+          <button class="btn sm" id="mac-write">写入此宏</button>
+        </div>
+
+        <h3 style="font-size:13px;margin:16px 0 8px;">按键绑定（当前组 K1~K9）</h3>
+        <div class="mac-bind" id="mac-bind"></div>
+        <div class="btnrow" style="margin-top:10px;">
+          <button class="btn sm" id="mac-bind-read">读绑定</button>
+          <button class="btn sm" id="mac-bind-write">写绑定</button>
+          <button class="btn sm ghost" id="mac-bind-clear">全部解绑</button>
+          <span class="spacer"></span>
+          <button class="btn sm primary" id="mac-save">写入设备并保存</button>
+        </div>
+        <p class="hint" style="margin:10px 0 0;" id="mac-status">
+          没连设备也能先编好；连上后点「写入设备并保存」才会进设备（掉电不丢）。
+        </p>
+      </div>
+    </div>
+
+    <!-- ======== 设备直连（USB 虚拟串口）======== -->
+    <div class="panel" id="panel-device">
+      <h2><span class="n">5</span>设备直连（免烧录改映射）</h2>
+      <div class="body">
+
+        <!-- 不支持时的提示 -->
+        <div class="dev-unsupported" id="dev-unsupported" hidden>
+          <b>当前浏览器不支持 Web Serial。</b><br>
+          请用 <b>Chrome 89+</b> 或 <b>Edge 89+</b> 打开本页面（Firefox / Safari 暂不支持）。<br>
+          也可以用页面右侧生成的 C 代码，手动替换后重新烧录。
+        </div>
+
+        <!-- 连接状态 -->
+        <div class="dev-status" id="dev-status">
+          <span class="dev-dot" id="dev-dot"></span>
+          <span class="dev-label" id="dev-label">未连接</span>
+          <span class="spacer" style="flex:1;"></span>
+          <span class="dev-sub" id="dev-sub"></span>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="dev-grid">
+          <button class="btn sm primary" id="dev-connect">连接设备</button>
+          <button class="btn sm" id="dev-disconnect" disabled>断开</button>
+          <button class="btn sm" id="dev-reconnect">重连上次</button>
+          <button class="btn sm" id="dev-ping" disabled>PING 测试</button>
+          <button class="btn sm" id="dev-selftest" disabled>自检（只读）</button>
+          <button class="btn sm" id="dev-readinfo" disabled>读设备信息</button>
+          <button class="btn sm" id="dev-readmap" disabled>读取设备映射</button>
+          <button class="btn sm" id="dev-readall" disabled>读取全部 5 组</button>
+          <button class="btn sm" id="dev-readnames" disabled>读取组名</button>
+        </div>
+
+        <div class="dev-grid">
+          <button class="btn sm" id="dev-sendkey" disabled>下发选中键</button>
+          <button class="btn sm" id="dev-sendgroup" disabled>下发本组</button>
+          <button class="btn sm" id="dev-sendall" disabled>下发全部 5 组</button>
+          <button class="btn sm" id="dev-sendnames" disabled>下发组名</button>
+          <button class="btn sm" id="dev-setgroup" disabled>切换当前组</button>
+          <button class="btn sm" id="dev-sync" disabled>一键同步到设备</button>
+        </div>
+
+        <div class="dev-grid">
+          <button class="btn sm" id="dev-save" disabled> 保存到设备 Flash</button>
+          <button class="btn sm" id="dev-load" disabled>从 Flash 重新载入</button>
+          <button class="btn sm danger" id="dev-reset" disabled>恢复出厂默认</button>
+        </div>
+
+        <!-- 设备信息 -->
+        <div class="dev-box" id="dev-infobox" hidden>
+          <h3>设备信息</h3>
+          <div class="dev-kv" id="dev-infokv"></div>
+        </div>
+
+        <!-- 日志 -->
+        <div class="dev-box" style="margin-bottom:0;">
+          <h3>通信日志</h3>
+          <div class="dev-log" id="dev-log">
+            <div class="t-in">等待连接设备…</div>
+          </div>
+        </div>
+
+        <p class="dev-note" style="margin-top:12px;">
+          <b>用法：</b>点「连接设备」→ 在浏览器弹窗里选 <b>USB 串行设备</b>
+          （不是蓝牙串口）→ 点「读取设备映射」把设备里的现状读回来 →
+          随便改几个键 → 点「一键同步到设备」 → 最后点 <b>「保存到设备 Flash」</b>
+          才会掉电不丢。<br>
+          <b>说明：</b>改完映射立刻在键盘上生效，<b>不用拔插、不用重新烧录</b>。
+        </p>
+        <p class="dev-note" style="margin-top:8px;">
+          <b>连不上？按这四步看：</b><br>
+          ① <b>键盘必须插着 USB 线</b>（走蓝牙连电脑是连不上的，这条通道就是那根 USB 线里的虚拟串口）；
+          ② 打开「设备管理器 → 端口(COM 和 LPT)」，应该能看到
+          <b>「USB 串行设备 (COMx)」</b>；如果显示成「无法识别的 USB 设备」或压根没有，
+          右键把它<b>卸载设备</b>（勾上"删除驱动程序"）再重新插拔一次 USB ——
+          Windows 会把上一次「纯 HID 键盘」的描述符缓存住，固件改成 HID+CDC 复合设备后必须让它重新枚举；
+          ③ 端口被别的程序占着（<b>MRS 的串口监视器</b>、WCHISPTool、另一个浏览器标签页）——先全部关掉；
+          ④ 用 <b>Chrome / Edge</b> 打开本页（Firefox / Safari 没有 Web Serial；IDE 内置浏览器也不行）。
+        </p>
+
+      </div>
+    </div>
+
+    <!-- ======== 6. 遥控模式配置（三张表）======== -->
+    <div class="panel" id="panel-rc">
+      <h2><span class="n">6</span>遥控模式配置（三张表）</h2>
+      <div class="body">
+
+        <p class="hint" style="margin:0 0 12px;">
+          CH592X 当遥控器用时，按了哪个键就发一个<b>动作编号</b>给从机（CH570Q）；
+          从机收到后<b>查自己的 Flash 执行</b>，<b>具体做什么动作和主机无关</b>。
+          这里配的是主机侧的三张表：
+        </p>
+        <ul class="hint" style="margin:0 0 12px 18px;padding:0;">
+          <li><b>① 动作目录</b> —— 编号 → 名称。只为在屏幕上提示用户"这个键是什么功能"。</li>
+          <li><b>② 动作编号表</b> —— 表名 + 12 个动作编号（9 个按键 + 编码器左转/右转/单击）。可以有<b>多张</b>，按表名区分。</li>
+          <li><b>③ 设备绑定</b> —— 设备名 → 用哪张表。决定"操作哪台从机时用哪套编号"。</li>
+        </ul>
+
+        <div class="btnrow">
+          <button class="btn sm primary" id="rc-load">从设备读取</button>
+          <button class="btn sm" id="rc-save">写入设备</button>
+          <button class="btn sm ghost" id="rc-clear">全部清空</button>
+        </div>
+        <p class="hint" id="rc-status" style="margin:8px 0 14px;">未读取（先在上面「设备直连」里连上 USB，再点「从设备读取」）。</p>
+
+        <div class="rc-sec">
+          <div class="rc-h"><span class="rc-n">①</span>动作目录
+            <span class="rc-sub">编号 1~63 · 名称 ≤10 个字母/数字（只能 ASCII，屏上是点阵字库）</span>
+          </div>
+          <div id="rc-cat" class="rc-cat"></div>
+          <button class="btn sm" id="rc-cat-add">+ 加一条</button>
+        </div>
+
+        <div class="rc-sec">
+          <div class="rc-h"><span class="rc-n">②</span>动作编号表
+            <span class="rc-sub">每张表 12 个编号，对应 K1~K9 + 左转/右转/单击</span>
+          </div>
+          <div class="btnrow" style="margin-bottom:8px;">
+            <select id="rc-tbl-sel" class="rc-sel"></select>
+            <button class="btn sm" id="rc-tbl-add">+ 新表</button>
+            <button class="btn sm danger" id="rc-tbl-del">删除此表</button>
+            <span class="spacer"></span>
+            <input id="rc-tbl-name" class="rc-in" maxlength="10" placeholder="表名（≤10 字母/数字）">
+            <button class="btn sm" id="rc-tbl-rename">改名</button>
+          </div>
+          <div id="rc-tbl" class="rc-tbl"></div>
+        </div>
+
+        <div class="rc-sec">
+          <div class="rc-h"><span class="rc-n">③</span>设备绑定
+            <span class="rc-sub">设备名（从机自己 Flash 里固定的） → 用哪张表</span>
+          </div>
+          <div id="rc-bind" class="rc-bind"></div>
+          <button class="btn sm" id="rc-bind-add">+ 加一台设备</button>
+        </div>
+
+        <p class="hint" style="margin:14px 0 0;">
+          <b>怎么用：</b>连上 USB → 「从设备读取」把现状读回来 → 改 → 「写入设备」。
+          每张表写好编号后记得点「写入设备」，否则掉电就没了。<br>
+          <b>编号下拉和手打都行：</b>下拉是从「① 动作目录」里选（自动填编号），
+          也可以直接在数字框里手打编号；打了目录里没有的编号会标红提醒
+          —— 从机照样执行，只是主机屏幕上显示不出名字。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 右栏：C 代码输出 ============ -->
+  <div class="colm" id="colright">
+    <div class="panel codebox">
+      <h2><span class="n">C</span>生成的代码</h2>
+      <div class="codehead">
+        <div class="codetabs">
+          <button class="codetab on" data-tab="map">映射表</button>
+          <button class="codetab" data-tab="patch">组合键说明<span class="dotbadge" id="patchdot" hidden></span></button>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn sm" id="btn-diff">对比默认</button>
+        <button class="btn sm primary" id="btn-copyc">复制</button>
+        <button class="btn sm" id="btn-downc">下载 .c</button>
+      </div>
+      <pre class="code" id="codeout"></pre>
+    </div>
+
+    <div class="panel" id="patchnote" style="border-color:#fde68a;background:#fffdf5;">
+      <div class="body" style="padding:12px 14px;">
+        <p class="hint" style="margin:0;color:#92400e;">
+          <b>检测到组合键</b> —— 本工程固件已内置组合键支持
+          （<code>ui_kbd.c</code> 的 <code>UiKbd_BuildHid6()</code> 会把映射值高字节
+          或 <code>0xE0~0xE7</code> 转成报文 modifiers 字节），<b>不需要打补丁</b>，
+          直接「下发」到设备就生效。详见上方「组合键说明」标签。
+        </p>
+      </div>
+    </div>
+
+    <details class="sec" open>
+      <summary>如何应用到工程</summary>
+      <div class="body">
+        <p class="hint" style="margin-bottom:12px;">
+          <b>第 1 步 · 替换映射表</b>（所有改动都需要）<br>
+          打开 <code>hardware/key_matrix.c</code>，找到
+          <code>static const uint16_t s_map_default[...]</code>，
+          连它下面的 <code>s_map_name[]</code> 一起，整块换成「映射表」标签页生成的代码。
+        </p>
+        <p class="hint" style="margin-bottom:12px;">
+          <b>第 2 步 · 组合键 / 修饰键（本版固件已内置，不用改代码）</b><br>
+          <code>ui_kbd.c</code> 会把映射值高字节当修饰位、把 <code>0xE0~0xE7</code>
+          当单个修饰键，USB / 2.4G / BLE 三条通道都走这套。
+          做完第 1 步（或直接用「设备直连」下发）即可生效，
+          说明见「组合键说明」标签。
+        </p>
+        <p class="hint" style="margin-bottom:12px;">
+          <b>第 3 步 · 编译烧录</b><br>
+          MounRiver Studio 重新编译。运行时 <code>KEY_ResetMap()</code>
+          会用新默认值覆盖，行为一致。
+        </p>
+        <p class="hint" style="margin:0;">
+          <b>注意：</b><code>KEY_MAP_GROUPS</code> 决定组数（当前 <code>5</code>）。
+          若在 <code>key_matrix.h</code> 里改过，请同步改本页脚本开头的
+          <code>const KEY_MAP_GROUPS = 4</code>。
+        </p>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>编码格式与兼容性</summary>
+      <div class="body">
+        <p class="hint" style="margin-bottom:10px;">
+          映射值 <code>uint16_t</code> 的编码：<b>高字节 = 修饰键位图，低字节 = 主键</b>。
+          这与 HID 报文的 <code>[modifiers][key]</code> 布局一致。
+        </p>
+        <p class="hint" style="margin-bottom:10px;">
+          <b>本版固件：</b><code>UiKbd_UsageOf()</code> 取低字节当主键、
+          <code>UiKbd_ModsOf()</code> 取高字节当修饰位，所以
+          <code>0x0106</code>（Ctrl+C）这类值下发后立刻生效，
+          USB / 2.4G / BLE 三条通道都支持。<br>
+          <b>向后兼容：</b>纯单键的值都在 <code>0x00~0xFF</code>，旧固件照常工作；
+          旧固件会把带高字节的组合键当成"无键"，升级本版固件后即恢复。
+        </p>
+        <p class="hint" style="margin:10px 0 0;">
+          <b>修饰键位定义</b>（与固件 HID 报文第 0 字节一致）：<br>
+          <code>0x01</code> LCtrl · <code>0x02</code> LShift ·
+          <code>0x04</code> LAlt · <code>0x08</code> LGUI<br>
+          <code>0x10</code> RCtrl · <code>0x20</code> RShift ·
+          <code>0x40</code> RAlt · <code>0x80</code> RGUI
+        </p>
+        <p class="hint" style="margin:10px 0 0;">
+          <b>单独一个修饰键：</b>低字节直接写 <code>0xE0~0xE7</code>
+          （列表里的 LCtrl 等），或者用高字节写法 <code>0x0100</code>
+          （只按 LCtrl）都行，固件两种写法都认。
+        </p>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>HID 键值速查</summary>
+      <div class="body">
+        <p class="hint" style="margin:0;">
+          <b>字母：</b>A–Z = <code>0x04–0x1D</code><br>
+          <b>数字：</b>1–9 = <code>0x1E–0x26</code>，0 = <code>0x27</code><br>
+          <b>编辑键：</b>Enter <code>0x28</code>、Esc <code>0x29</code>、
+          Backspace <code>0x2A</code>、Tab <code>0x2B</code>、
+          Space <code>0x2C</code>、CapsLock <code>0x39</code><br>
+          <b>功能键：</b>F1–F12 = <code>0x3A–0x45</code><br>
+          <b>导航键：</b>Ins <code>0x49</code>、Home <code>0x4A</code>、
+          PgUp <code>0x4B</code>、Del <code>0x4C</code>、
+          End <code>0x4D</code>、PgDn <code>0x4E</code><br>
+          <b>方向键：</b>右 <code>0x4F</code>、左 <code>0x50</code>、
+          下 <code>0x51</code>、上 <code>0x52</code><br>
+          <b>小键盘：</b>Num1–Num9 = <code>0x59–0x61</code><br>
+          <b>媒体键：</b>音量+ <code>0x80</code>、音量- <code>0x81</code><br>
+          <b>修饰键：</b>LCtrl <code>0xE0</code>、LShift <code>0xE1</code>、
+          LAlt <code>0xE2</code>、LGUI <code>0xE3</code>、
+          RCtrl <code>0xE4</code>、RShift <code>0xE5</code>、
+          RAlt <code>0xE6</code>、RGUI <code>0xE7</code>
+        </p>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toastmsg"></span></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. 固件数据模型（从 CH592X 工程原样抽取）
+   ============================================================ */
+
+/* --- key_matrix.h --- */
+const KEY_MAP_GROUPS = 5;
+const KEY_MAP_KEYS   = 9;
+
+/* --- key_matrix.c: s_map_default[5][9] ---
+   组 0：数字 1~9              （默认组 1）
+   组 1：方向键 + 回车/ESC/空格/音量（默认组 2）
+   组 2：F1~F9                （默认组 3）
+   组 3：小键盘 1~9            （自定义组 1，设备上可进键值编辑页改）
+   组 4：字母 a~i              （自定义组 2，同上）              */
+const DEFAULT_MAP = [
+  [0x1E,0x1F,0x20,0x21,0x22,0x23,0x24,0x25,0x26], /* 1 2 3 4 5 6 7 8 9 */
+  [0x29,0x52,0x2C,0x50,0x28,0x4F,0x80,0x51,0x81], /* Esc Up Space Left Enter Right Vol+ Down Vol- */
+  [0x3A,0x3B,0x3C,0x3D,0x3E,0x3F,0x40,0x41,0x42], /* F1..F9 */
+  [0x59,0x5A,0x5B,0x5C,0x5D,0x5E,0x5F,0x60,0x61], /* Num1..Num9 */
+  [0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C]  /* A..I */
+];
+
+/* --- key_matrix.c: s_map_name[5] --- */
+const DEFAULT_NAME = ["123", "ARROW", "F1-F9", "NUM", "ABC"];
+
+/* --- key_matrix.c: s_enc_default[5][3]（v3 新增）
+   编码器三个动作的映射槽，顺序 = 正转 / 反转 / 单击。
+   0 = 该动作不按键（默认正反转就是 0，保持旧行为；单击默认回车 0x28）。 */
+const DEFAULT_ENC = [
+  [0, 0, 0x28],
+  [0, 0, 0x28],
+  [0, 0, 0x28],
+  [0, 0, 0x28],
+  [0, 0, 0x28]
+];
+
+/* --- ui_kbd.c: UiKbd_UsageName() 完整映射（左右修饰键区分开） --- */
+const USAGE_NAME = {
+  0x04:"A",0x05:"B",0x06:"C",0x07:"D",0x08:"E",0x09:"F",0x0A:"G",0x0B:"H",
+  0x0C:"I",0x0D:"J",0x0E:"K",0x0F:"L",0x10:"M",0x11:"N",0x12:"O",0x13:"P",
+  0x14:"Q",0x15:"R",0x16:"S",0x17:"T",0x18:"U",0x19:"V",0x1A:"W",0x1B:"X",
+  0x1C:"Y",0x1D:"Z",
+  0x1E:"1",0x1F:"2",0x20:"3",0x21:"4",0x22:"5",0x23:"6",0x24:"7",0x25:"8",
+  0x26:"9",0x27:"0",
+  0x28:"Enter",0x29:"Esc",0x2A:"Bksp",0x2B:"Tab",0x2C:"Space",0x39:"Caps",
+  0x3A:"F1",0x3B:"F2",0x3C:"F3",0x3D:"F4",0x3E:"F5",0x3F:"F6",
+  0x40:"F7",0x41:"F8",0x42:"F9",0x43:"F10",0x44:"F11",0x45:"F12",
+  0x49:"Ins",0x4A:"Home",0x4B:"PgUp",0x4C:"Del",0x4D:"End",0x4E:"PgDn",
+  0x4F:"Right",0x50:"Left",0x51:"Down",0x52:"Up",
+  0x59:"Num1",0x5A:"Num2",0x5B:"Num3",0x5C:"Num4",0x5D:"Num5",0x5E:"Num6",
+  0x5F:"Num7",0x60:"Num8",0x61:"Num9",
+  0x80:"Vol+",0x81:"Vol-",
+  0xE0:"LCtrl",0xE1:"LShft",0xE2:"LAlt",0xE3:"LGUI",
+  0xE4:"RCtrl",0xE5:"RShft",0xE6:"RAlt",0xE7:"RGUI"
+};
+
+/* --- ui_pages2.c: s_hid_usage[] 可编辑值列表（83 项，顺序一致；
+       两边一致性由 tools/test_web_fw_consistency.py 的 T9 盯着） --- */
+const HID_USAGE = [
+  /* 修饰键放最前（与固件顺序一致：编码器一转就到 Ctrl） */
+  0xE0,0xE1,0xE2,0xE3,0xE4,0xE5,0xE6,0xE7,
+  /* 字母 A~Z */
+  0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,
+  0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,
+  0x18,0x19,0x1A,0x1B,0x1C,0x1D,
+  /* 数字行 1~9、0 */
+  0x1E,0x1F,0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27,
+  /* 编辑键：Enter / Esc / Bksp / Tab / Space / Caps */
+  0x28,0x29,0x2A,0x2B,0x2C,0x39,
+  /* 功能键 F1~F12 */
+  0x3A,0x3B,0x3C,0x3D,0x3E,0x3F,
+  0x40,0x41,0x42,0x43,0x44,0x45,
+  /* 编辑/导航键：Ins / Home / PgUp / Del / End / PgDn */
+  0x49,0x4A,0x4B,0x4C,0x4D,0x4E,
+  /* 方向键 */
+  0x4F,0x50,0x51,0x52,
+  /* 小键盘 1~9 */
+  0x59,0x5A,0x5B,0x5C,0x5D,0x5E,0x5F,0x60,0x61,
+  /* 媒体键 */
+  0x80,0x81
+];
+
+/* 值分类（仅用于界面展示，不影响生成代码） */
+function valueCat(u){
+  const lo = u & 0xFF;
+  if (lo === 0) return "空";
+  if (lo >= 0x04 && lo <= 0x1D) return "字母";
+  if (lo >= 0x1E && lo <= 0x27) return "数字";
+  if (lo === 0x28 || lo === 0x29 || lo === 0x2A || lo === 0x2B ||
+      lo === 0x2C || lo === 0x39 ||
+      (lo >= 0x49 && lo <= 0x4E)) return "编辑";
+  if (lo >= 0x3A && lo <= 0x45) return "功能";
+  if (lo >= 0x4F && lo <= 0x52) return "方向";
+  if (lo >= 0x59 && lo <= 0x61) return "小键盘";
+  if (lo === 0x80 || lo === 0x81) return "媒体";
+  if (lo >= 0xE0 && lo <= 0xE7) return "修饰";
+  return "其他";
+}
+
+/* ============================================================
+   修饰键：HID 修饰键位图（与 HID 报文第 0 字节、固件 s_mods 一致）
+     bit0 LCtrl  bit1 LShift  bit2 LAlt  bit3 LGUI
+     bit4 RCtrl  bit5 RShift  bit6 RAlt  bit7 RGUI
+   映射值编码：高 8 位 = 修饰键位图，低 8 位 = 主键 HID Usage ID
+     例：Ctrl+C = 0x0106     Shift+A = 0x0204     无修饰 = 0x0006
+   ============================================================ */
+const MOD_LCTRL  = 0x01;
+const MOD_LSHIFT = 0x02;
+const MOD_LALT   = 0x04;
+const MOD_LGUI   = 0x08;
+const MOD_RCTRL  = 0x10;
+const MOD_RSHIFT = 0x20;
+const MOD_RALT   = 0x40;
+const MOD_RGUI   = 0x80;
+
+/* 把修饰位图拆成界面上的 4 个类别（左右合并显示） */
+function modFlags(mods){
+  return {
+    ctrl : !!(mods & (MOD_LCTRL  | MOD_RCTRL)),
+    shift: !!(mods & (MOD_LSHIFT | MOD_RSHIFT)),
+    alt  : !!(mods & (MOD_LALT   | MOD_RALT)),
+    gui  : !!(mods & (MOD_LGUI   | MOD_RGUI))
+  };
+}
+
+/* 修饰键的中文短名，用于组合键显示 */
+function modShort(mods){
+  const f = modFlags(mods);
+  const out = [];
+  if (f.ctrl)  out.push("Ctrl");
+  if (f.shift) out.push("Shift");
+  if (f.alt)   out.push("Alt");
+  if (f.gui)   out.push("Win");
+  return out;
+}
+
+/* 取主键（低字节） */
+function keyOf(v){ return v & 0xFF; }
+/* 取修饰键（高字节） */
+function modOf(v){ return (v >> 8) & 0xFF; }
+
+/* 拼装完整显示名：修饰 + 主键 */
+function fullName(v){
+  const k = keyOf(v);
+  const m = modOf(v);
+  const mods = modShort(m);
+  const kn = usageName(k);
+  if (mods.length === 0) return kn;
+  if (k === 0) return mods.join("+");      // 只有修饰键
+  return mods.join("+") + "+" + kn;
+}
+
+/* 取显示名：查 USAGE_NAME（UiKbd_UsageName 的镜像），未收录的退回十六进制 */
+function usageName(u){
+  if (u === 0) return "（空）";
+  if (USAGE_NAME[u]) return USAGE_NAME[u];
+  return "0x" + hex2(u);
+}
+
+function hex2(u){ return u.toString(16).toUpperCase().padStart(2,"0"); }
+
+/* ============================================================
+   物理键盘 event.code -> HID Usage ID 对照表
+   （用 code 而不是 key，因为 code 不受输入法/大小写/键盘布局影响，
+     物理位置是稳定的，正好对应固件里"物理按键"的语义）
+
+   只收录固件 key_matrix.h / s_hid_usage[] 能表达的键值。
+   ============================================================ */
+const CODE_TO_HID = {
+  /* --- 字母 A~Z --- */
+  KeyA:0x04, KeyB:0x05, KeyC:0x06, KeyD:0x07, KeyE:0x08, KeyF:0x09,
+  KeyG:0x0A, KeyH:0x0B, KeyI:0x0C, KeyJ:0x0D, KeyK:0x0E, KeyL:0x0F,
+  KeyM:0x10, KeyN:0x11, KeyO:0x12, KeyP:0x13, KeyQ:0x14, KeyR:0x15,
+  KeyS:0x16, KeyT:0x17, KeyU:0x18, KeyV:0x19, KeyW:0x1A, KeyX:0x1B,
+  KeyY:0x1C, KeyZ:0x1D,
+
+  /* --- 数字行 1~9, 0 --- */
+  Digit1:0x1E, Digit2:0x1F, Digit3:0x20, Digit4:0x21, Digit5:0x22,
+  Digit6:0x23, Digit7:0x24, Digit8:0x25, Digit9:0x26, Digit0:0x27,
+
+  /* --- 编辑键 --- */
+  Enter:0x28, NumpadEnter:0x28,
+  Escape:0x29,
+  Backspace:0x2A,
+  Tab:0x2B,
+  Space:0x2C,
+  CapsLock:0x39,
+
+  /* --- 功能键 F1~F12 --- */
+  F1:0x3A, F2:0x3B, F3:0x3C, F4:0x3D, F5:0x3E, F6:0x3F,
+  F7:0x40, F8:0x41, F9:0x42, F10:0x43, F11:0x44, F12:0x45,
+
+  /* --- 编辑/导航键 --- */
+  Insert:0x49, Home:0x4A, PageUp:0x4B,
+  Delete:0x4C, End:0x4D, PageDown:0x4E,
+
+  /* --- 方向键 --- */
+  ArrowRight:0x4F, ArrowLeft:0x50, ArrowDown:0x51, ArrowUp:0x52,
+
+  /* --- 小键盘 1~9 --- */
+  Numpad1:0x59, Numpad2:0x5A, Numpad3:0x5B,
+  Numpad4:0x5C, Numpad5:0x5D, Numpad6:0x5E,
+  Numpad7:0x5F, Numpad8:0x60, Numpad9:0x61,
+
+  /* --- 媒体键（部分键盘有独立的音量键） --- */
+  AudioVolumeUp:0x80, AudioVolumeDown:0x81
+};
+
+/* 修饰键 event.code -> 修饰位（左右区分，但界面显示时合并） */
+const CODE_TO_MOD = {
+  ControlLeft : MOD_LCTRL,  ControlRight : MOD_RCTRL,
+  ShiftLeft   : MOD_LSHIFT, ShiftRight   : MOD_RSHIFT,
+  AltLeft     : MOD_LALT,   AltRight     : MOD_RALT,
+  MetaLeft    : MOD_LGUI,   MetaRight    : MOD_RGUI
+};
+
+/* 用不了的键在这里给出原因（能用的都在 CODE_TO_HID / CODE_TO_MOD 里） */
+function unsupportedReason(code){
+  if (code.startsWith("F") && /^F\d+$/.test(code)) return code + " 超出固件 F1~F12 范围";
+  if (code.startsWith("Numpad")) return code + " 不在固件小键盘 1~9 范围内";
+  if (code.startsWith("Media") || code.startsWith("Browser") ||
+      code === "AudioVolumeMute")  return "该媒体键固件不支持";
+  return null;
+}
+
+/* ============================================================
+   2. 应用状态
+   ============================================================ */
+const state = {
+  map:  DEFAULT_MAP.map(r => r.slice()),   // 当前编辑中的映射
+  name: DEFAULT_NAME.slice(),              // 组名
+  enc:  DEFAULT_ENC.map(r => r.slice()),   // 编码器槽（每组 3 个，v3）
+  cur:  0,                                 // 当前组
+  sel:  null,                              // 当前选中键（0..8），null = 未选
+  cap:  {                                  // 键盘捕获状态
+    on:     false,   // 是否处于捕获态
+    mods:   0,       // 当前按下的修饰键位图（实时）
+    latch:  0,       // 主键按下那一刻锁定的修饰键（提交时用这个，避免松手清空）
+    modsLatch: 0,    // 累计按过哪些修饰键（没按主键时用它提交纯修饰键）
+    key:    0,       // 当前主键 HID usage（0 = 还没按主键）
+    armed:  false,   // 是否已经按过主键（用于判断"松开即提交"）
+    bad:    ""       // 不支持的键提示
+  }
+};
+
+/* 槽位统一访问：0..8 = 九个按键，9..11 = 编码器 正转/反转/单击 */
+function curVal(g,k){
+  return (k < KEY_MAP_KEYS) ? state.map[g][k] : state.enc[g][k - KEY_MAP_KEYS];
+}
+function setVal(g,k,v){
+  if (k < KEY_MAP_KEYS) state.map[g][k] = v & 0xFFFF;
+  else                  state.enc[g][k - KEY_MAP_KEYS] = v & 0xFFFF;
+}
+function defVal(g,k){
+  return (k < KEY_MAP_KEYS) ? DEFAULT_MAP[g][k] : DEFAULT_ENC[g][k - KEY_MAP_KEYS];
+}
+function slotLabel(k){
+  if (k < KEY_MAP_KEYS)
+    return "K" + (k+1) + "（R" + (Math.floor(k/3)+1) + "C" + ((k%3)+1) + "）";
+  return ["编码器 · 正转", "编码器 · 反转", "编码器 · 单击"][k - KEY_MAP_KEYS];
+}
+
+/* 判断某槽是否偏离默认值 */
+function isModified(g,k){
+  return curVal(g,k) !== defVal(g,k);
+}
+function anyModified(){
+  let n = 0;
+  for (let g=0; g<KEY_MAP_GROUPS; g++)
+    for (let k=0; k<KEY_MAP_KEYS; k++)
+      if (isModified(g,k)) n++;
+  return n;
+}
+
+/* ============================================================
+   3. 渲染 —— 组标签
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+function renderTabs(){
+  const el = $("grouptabs");
+  el.innerHTML = "";
+  for (let g=0; g<KEY_MAP_GROUPS; g++){
+    const d = document.createElement("div");
+    d.className = "grouptab" + (g === state.cur ? " on" : "");
+    const mod = state.map[g].some((v,k)=>v !== DEFAULT_MAP[g][k]);
+    d.innerHTML =
+      '<span class="gt-name">' + esc(state.name[g] || ("G"+g)) +
+      (mod ? ' ·' : '') + '</span>' +
+      '<span class="gt-idx">GROUP ' + g + '</span>';
+    d.onclick = () => { state.cur = g; state.sel = null; renderAll(); };
+    el.appendChild(d);
+  }
+  // 组名输入框
+  $("gname").value = state.name[state.cur];
+  $("gnamelen").textContent = state.name[state.cur].length + "/20";
+}
+
+/* 生成组名对应的 C 字符串字面量（转义） */
+function cEscape(s){
+  let out = "";
+  for (const ch of s){
+    const c = ch.codePointAt(0);
+    if (ch === '"')  out += '\\"';
+    else if (ch === "\\") out += "\\\\";
+    else if (c >= 0x20 && c < 0x7F) out += ch;
+    else if (c > 0x7F) out += "?";   // 固件按 ASCII 处理
+  }
+  return out;
+}
+
+/* ============================================================
+   4. 渲染 —— 3x3 网格
+   ============================================================ */
+function renderGrid(){
+  const el = $("kgrid");
+  el.innerHTML = "";
+  const g = state.cur;
+
+  for (let k=0; k<KEY_MAP_KEYS; k++){
+    const v = state.map[g][k];
+    const cell = document.createElement("div");
+    const empty = (v === 0);
+    cell.className = "kcell" + (empty ? " empty" : "");
+    if (state.sel === k) cell.className += " sel";
+    if (state.cap.on && state.sel === k) cell.className += " capturing";
+
+    const row = Math.floor(k/3) + 1;
+    const col = (k%3) + 1;
+    const combo = modOf(v) !== 0;          // 是否是组合键
+
+    cell.innerHTML =
+      '<span class="kpos">R' + row + 'C' + col + ' · K' + (k+1) + '</span>' +
+      (isModified(g,k) ? '<span class="kmodified"></span>' : '') +
+      (combo ? '<span class="kcombo">组合</span>' : '') +
+      '<span class="kname' + (combo ? ' small' : '') + '">' + esc(fullName(v)) + '</span>' +
+      '<span class="khex">0x' + hex2(modOf(v)) + hex2(keyOf(v)) + '</span>';
+
+    cell.onclick = () => { selectKey(k); };
+    el.appendChild(cell);
+  }
+
+  /* --- 编码器三个槽（v3 新增，槽号 9/10/11）--- */
+  const encLabel = ["正转", "反转", "● 单击"];
+  for (let e = 0; e < 3; e++){
+    const k = KEY_MAP_KEYS + e;
+    const v = state.enc[g][e];
+    const cell = document.createElement("div");
+    cell.className = "kcell" + ((v === 0) ? " empty" : "");
+    if (state.sel === k) cell.className += " sel";
+    if (state.cap.on && state.sel === k) cell.className += " capturing";
+
+    cell.innerHTML =
+      '<span class="kpos">ENC ' + encLabel[e] + '</span>' +
+      (v !== DEFAULT_ENC[g][e] ? '<span class="kmodified"></span>' : '') +
+      '<span class="kname' + ((modOf(v) !== 0) ? ' small' : '') + '">' + esc(fullName(v)) + '</span>' +
+      '<span class="khex">0x' + hex2(modOf(v)) + hex2(keyOf(v)) + '</span>';
+
+    cell.onclick = () => { selectKey(k); };
+    el.appendChild(cell);
+  }
+}
+
+/* ============================================================
+   5. 渲染 —— 编辑信息
+   ============================================================ */
+function renderEditInfo(){
+  const box = $("editinfo");
+  const g = state.cur;
+
+  if (state.sel === null){
+    box.innerHTML =
+      '<div class="row"><span class="lbl">未选中按键</span></div>' +
+      '<p class="hint" style="margin:8px 0 0;">' +
+      '点击左侧任一按键，然后在下方列表里选择要映射的键值，' +
+      '或直接按<b>物理键盘</b>录入。</p>';
+    return;
+  }
+
+  const k = state.sel;
+  const v = curVal(g,k);
+  const dv = defVal(g,k);
+
+  box.innerHTML =
+    '<div class="row"><span class="lbl">按键</span>' +
+      '<span class="val">' + slotLabel(k) + '</span></div>' +
+    '<div class="row"><span class="lbl">当前值</span>' +
+      '<span class="val big">' + esc(fullName(v)) + '</span></div>' +
+    '<div class="row"><span class="lbl">编码</span>' +
+      '<span class="val">修饰 0x' + hex2(modOf(v)) + ' | 主键 0x' + hex2(keyOf(v)) + '</span></div>' +
+    '<div class="row"><span class="lbl">默认值</span>' +
+      '<span class="val">' + esc(fullName(dv)) + ' · 0x' + hex2(modOf(dv)) + hex2(keyOf(dv)) + '</span></div>' +
+    '<div class="row"><span class="lbl">状态</span>' +
+      (v === dv
+        ? '<span class="badge def">同默认</span>'
+        : '<span class="badge mod">已修改</span>') +
+    '</div>';
+}
+
+/* ============================================================
+   6. 渲染 —— 键值列表
+   ============================================================ */
+let curFilter = "";
+
+function renderValueList(){
+  const el = $("valuelist");
+  const q = curFilter.trim().toLowerCase();
+  const g = state.cur;
+  // 列表只列主键，所以拿当前键的「主键」去比较高亮
+  const selKey = state.sel === null ? -1 : keyOf(curVal(g, state.sel));
+
+  el.innerHTML = "";
+
+  const items = HID_USAGE.filter(u => {
+    if (!q) return true;
+    const nm = usageName(u).toLowerCase();
+    const hx = "0x" + hex2(u).toLowerCase();
+    const de = hex2(u).toLowerCase();
+    const de2 = String(u);
+    return nm.includes(q) || hx.includes(q) || de === q || de2 === q ||
+           valueCat(u).includes(q);
+  });
+
+  if (items.length === 0){
+    el.innerHTML = '<div style="padding:22px;text-align:center;color:#98a2b3;font-size:13px;">' +
+                   '没有匹配的键值</div>';
+    return;
+  }
+
+  for (const u of items){
+    const d = document.createElement("div");
+    d.className = "valitem" + (u === selKey ? " on" : "");
+    d.innerHTML =
+      '<span class="vname">' + esc(usageName(u)) + '</span>' +
+      '<span class="vcat">' + valueCat(u) + '</span>' +
+      '<span class="vhex">0x' + hex2(u) + '</span>';
+    d.onclick = () => assign(u);
+    el.appendChild(d);
+  }
+}
+
+/* 把值赋给当前选中键（列表点击 = 只设主键，修饰键清零） */
+function assign(u){
+  if (state.sel === null){
+    toast("请先在左侧选择一个按键");
+    return;
+  }
+  const g = state.cur, k = state.sel;
+  if (curVal(g,k) === u) return;
+  setVal(g,k,u & 0xFFFF);
+  renderGrid(); renderEditInfo(); renderValueList(); renderStats(); renderCode(); renderTabs();
+}
+
+/* ============================================================
+   6.5 键盘捕获（物理键盘录入映射）
+   ============================================================ */
+
+/* 选中某个按键（同时刷新编辑信息与键值列表高亮） */
+function selectKey(k){
+  state.sel = k;
+  renderGrid(); renderEditInfo(); renderValueList();
+}
+
+/* 进入 / 退出捕获态 */
+function captureStart(){
+  if (state.sel === null){ toast("请先点击一个按键，再开始录入"); return; }
+  state.cap.on    = true;
+  state.cap.mods  = 0;
+  state.cap.latch = 0;
+  state.cap.modsLatch = 0;
+  state.cap.key   = 0;
+  state.cap.armed = false;
+  state.cap.bad   = "";
+  $("capture").hidden = false;
+  renderCapture();
+  renderGrid();
+}
+
+function captureStop(){
+  state.cap.on    = false;
+  state.cap.mods  = 0;
+  state.cap.latch = 0;
+  state.cap.modsLatch = 0;
+  state.cap.key   = 0;
+  state.cap.armed = false;
+  state.cap.bad   = "";
+  $("capture").hidden = true;
+  renderGrid();
+}
+
+/* 捕获面板实时渲染 */
+function renderCapture(){
+  const c = state.cap;
+  $("cap-target").textContent = "K" + (state.sel + 1);
+
+  // 修饰键高亮：以「锁定值」优先显示，没有锁定就用实时按下的
+  const shown = (c.key !== 0) ? c.latch : c.mods;
+  const f = modFlags(shown);
+  document.querySelectorAll(".cap-mod").forEach(el => {
+    el.classList.toggle("on", !!f[el.dataset.m]);
+  });
+
+  // 主键显示
+  const keyEl = $("cap-key");
+  if (c.bad){
+    keyEl.textContent = c.bad;
+    keyEl.className = "cap-key bad";
+  }else if (c.key !== 0){
+    keyEl.textContent = usageName(c.key);
+    keyEl.className = "cap-key on";
+  }else{
+    keyEl.textContent = "—";
+    keyEl.className = "cap-key";
+  }
+
+  // 编码预览：用锁定值，保证与提交的结果一致。
+  //   主键按过 -> 用主键那一刻锁定的修饰键
+  //   只按修饰键 -> 用累计的 modsLatch（松手后 mods 会被清 0）
+  const finalMods = (c.key !== 0) ? c.latch : ((c.modsLatch | c.mods) & 0xFF);
+  $("cap-code").textContent = "0x" + hex2(finalMods) + hex2(c.key);
+}
+
+/* 把捕获到的 (mods, key) 写入选中键 */
+function captureCommitValues(mods, key){
+  const v = ((mods & 0xFF) << 8) | (key & 0xFF);
+  const g = state.cur, k = state.sel;
+
+  setVal(g,k,v);
+
+  renderGrid(); renderEditInfo(); renderValueList(); renderStats(); renderCode(); renderTabs();
+  toast("K" + (k+1) + " ← " + fullName(v) + "（0x" + hex2(modOf(v)) + hex2(keyOf(v)) + "）");
+
+  // 自动跳到下一个按键，方便连续录入 9 个键
+  const next = k + 1;
+  if (next < KEY_MAP_KEYS){
+    state.sel = next;
+    state.cap.mods = 0; state.cap.latch = 0; state.cap.modsLatch = 0;
+    state.cap.key = 0; state.cap.armed = false; state.cap.bad = "";
+    renderGrid(); renderEditInfo(); renderValueList(); renderCapture();
+  }else{
+    captureStop();
+    renderEditInfo();
+  }
+}
+
+/* 主键 + 修饰键（组合键），提交 0xMMKK */
+function captureCommit(){
+  // 用锁定的修饰键（主键按下那一刻的值），而不是当前实时值
+  captureCommitValues(state.cap.latch, state.cap.key);
+}
+
+/* 只按了修饰键、没按主键：提交 0xMM00（例如 LCtrl = 0x0100）。
+ * 设备端的键值列表里也有 0xE0~0xE7 的写法，两种固件都认。 */
+function captureCommitMods(){
+  captureCommitValues(state.cap.modsLatch, 0);
+}
+
+/* --- 全局键盘监听：捕获态下拦截 --- */
+document.addEventListener("keydown", e => {
+  /* 【2026-10-15】宏录制优先：录制中每一个按键都记成一步 */
+  if (window.macRec){ macRecKey(e); return; }
+
+  /* 【2026-10-15】遥控设置标签页里没有按键映射网格，快捷键（1~9 / ←→）全部让路 */
+  if (document.body.dataset.top === "rc") return;
+
+  // 输入框里打字不拦截（除了捕获态）
+  const inInput = e.target.tagName === "INPUT";
+
+  if (!state.cap.on){
+    // 非捕获态：快捷键
+    if (inInput) return;
+
+    if (e.key >= "1" && e.key <= "9"){
+      selectKey(Number(e.key) - 1);
+      return;
+    }
+    if (e.key === "Escape"){
+      state.sel = null; renderGrid(); renderEditInfo(); renderValueList(); return;
+    }
+    if (e.key === "ArrowLeft"){
+      state.cur = (state.cur + KEY_MAP_GROUPS - 1) % KEY_MAP_GROUPS;
+      state.sel = null; renderAll(); return;
+    }
+    if (e.key === "ArrowRight"){
+      state.cur = (state.cur + 1) % KEY_MAP_GROUPS;
+      state.sel = null; renderAll(); return;
+    }
+    return;
+  }
+
+  /* ===== 以下是捕获态 ===== */
+
+  // 取消键：Ctrl + Q（不用 Esc，因为 Esc 本身是合法的映射目标）
+  if (e.code === "KeyQ" && (state.cap.mods & (MOD_LCTRL | MOD_RCTRL))){
+    e.preventDefault();
+    captureStop();
+    toast("已取消录入");
+    return;
+  }
+
+  // 修饰键：只更新修饰位，不算"主键"；同时记进 modsLatch，
+  // 这样"只按一个 Ctrl 就松手"也能提交成 0x0100（纯修饰键）
+  if (CODE_TO_MOD[e.code] !== undefined){
+    e.preventDefault();
+    state.cap.mods      |= CODE_TO_MOD[e.code];
+    state.cap.modsLatch |= CODE_TO_MOD[e.code];
+    renderCapture();
+    return;
+  }
+
+  // 主键（Esc 也在这里，会被正常录入为 0x29）
+  const hid = CODE_TO_HID[e.code];
+  if (hid !== undefined){
+    e.preventDefault();
+    state.cap.key = hid;
+    // 关键：在主键按下这一刻把修饰键「锁定」下来。
+    // 因为提交发生在松手时，而那时 mods 已经被清了。
+    state.cap.latch = state.cap.mods;
+    state.cap.armed = true;
+    state.cap.bad   = "";
+    renderCapture();
+    return;
+  }
+
+  // 不支持的键：给出原因
+  e.preventDefault();
+  const why = unsupportedReason(e.code) || ("不支持的按键：" + e.code);
+  state.cap.bad = why;
+  renderCapture();
+}, true);   // 用捕获阶段，抢在浏览器默认行为之前
+
+/* --- 松开按键：全部松完就提交 --- */
+document.addEventListener("keyup", e => {
+  if (!state.cap.on) return;
+
+  if (CODE_TO_MOD[e.code] !== undefined){
+    e.preventDefault();
+    state.cap.mods &= ~CODE_TO_MOD[e.code];
+  }else if (CODE_TO_HID[e.code] !== undefined){
+    e.preventDefault();
+  }else{
+    return;   // 无关的键直接忽略
+  }
+
+  /* 判断「是否该提交」：
+   *   - 已经按过主键（armed）
+   *   - 所有修饰键都已松开（mods === 0）
+   * 这样无论是单键（mods 本来就 0，松主键即提交）
+   * 还是组合键（松完最后一个修饰键才提交），都能正确落库。 */
+  if (state.cap.armed && state.cap.mods === 0){
+    captureCommit();
+  }else if (!state.cap.armed && state.cap.modsLatch !== 0 && state.cap.mods === 0){
+    captureCommitMods();
+  }else{
+    renderCapture();
+  }
+}, true);
+
+/* 防止捕获态下浏览器弹出右键菜单 / 滚动 */
+document.addEventListener("contextmenu", e => {
+  if (state.cap.on) e.preventDefault();
+}, true);
+
+/* ============================================================
+   7. 渲染 —— 统计
+   ============================================================ */
+function renderStats(){
+  const g = state.cur;
+  let empty = 0, dup = 0, combo = 0;
+  const seen = {};
+  for (let k=0;k<KEY_MAP_KEYS;k++){
+    const v = state.map[g][k];
+    if (keyOf(v) === 0 && modOf(v) === 0){
+      empty++;
+    }else{
+      if (modOf(v) !== 0) combo++;
+      if (seen[v]) dup++; else seen[v] = true;
+    }
+  }
+  $("st-mod").textContent   = anyModified();
+  $("st-empty").textContent = empty;
+  $("st-dup").textContent   = dup;
+  $("st-combo").textContent = combo;
+}
+
+/* ============================================================
+   8. C 代码生成（格式与 key_matrix.c 对齐）
+   ============================================================ */
+/* 生成纯文本 C 代码（供复制 / 下载 / 渲染共用）
+   映射值编码：0xMMKK，MM = 修饰键位图，KK = 主键 HID Usage ID */
+function genCode(){
+  const lines = [];
+
+  // ---- 判断有没有用到组合键 / 非默认组数，决定注释措辞 ----
+  let comboCount = 0;
+  for (let g=0; g<KEY_MAP_GROUPS; g++)
+    for (let k=0; k<KEY_MAP_KEYS; k++)
+      if (modOf(state.map[g][k]) !== 0) comboCount++;
+
+  lines.push("/* ============================================================");
+  lines.push(" * 由 CH592X 按键映射编辑器生成");
+  lines.push(" *");
+  lines.push(" * 映射值编码（uint16_t）：");
+  lines.push(" *   高 8 位 = HID 修饰键位图   bit0 LCtrl bit1 LShift bit2 LAlt bit3 LGUI");
+  lines.push(" *                              bit4 RCtrl bit5 RShift bit6 RAlt bit7 RGUI");
+  lines.push(" *   低 8 位 = 主键 HID Usage ID（0x00 表示无主键）");
+  lines.push(" *");
+  lines.push(" *   无修饰单键：0x001E = 主键 1");
+  lines.push(" *   修饰组合键：0x0106 = Ctrl + C      0x0204 = Shift + A");
+  lines.push(" *   纯修饰键  ：0x0100 = 仅左 Ctrl");
+  lines.push(" *");
+  lines.push(" * 【注意】组合键需要固件配套改动，见下方「固件配套补丁」。");
+  lines.push(" * ============================================================ */");
+  lines.push("");
+  lines.push("static const uint16_t s_map_default[KEY_MAP_GROUPS][KEY_MAP_KEYS] =");
+  lines.push("{");
+
+  const comments = [
+    "组 0：数字 1~9（默认组）",
+    "组 1：方向键 + 回车/ESC/空格/音量",
+    "组 2：F1~F9",
+    "组 3：小键盘 1~9"
+  ];
+
+  for (let g=0; g<KEY_MAP_GROUPS; g++){
+    // 每行 9 个值，按 0xMMKK 输出
+    const row = state.map[g].map(v => {
+      const mm = modOf(v), kk = keyOf(v);
+      return "0x" + hex2(mm) + hex2(kk) + "u";
+    }).join(", ");
+
+    lines.push("    /* " + (comments[g] || ("组 " + g)) + " */");
+    lines.push("    { " + row + " }" + (g < KEY_MAP_GROUPS-1 ? "," : ""));
+    if (g < KEY_MAP_GROUPS-1) lines.push("");
+  }
+  lines.push("};");
+  lines.push("");
+  lines.push("");
+  lines.push("/* 编码器槽（v3）：5 组 × [正转, 反转, 单击]，0 = 该动作不按键 */");
+  lines.push("static const uint16_t s_enc_default[KEY_MAP_GROUPS][KEY_ENC_SLOTS] =");
+  lines.push("{");
+  for (let g=0; g<KEY_MAP_GROUPS; g++){
+    const row = state.enc[g].map(v => {
+      const mm = modOf(v), kk = keyOf(v);
+      return "0x" + hex2(mm) + hex2(kk) + "u";
+    }).join(", ");
+    lines.push("    /* " + (comments[g] || ("组 " + g)) + " */");
+    lines.push("    { " + row + " }" + (g < KEY_MAP_GROUPS-1 ? "," : ""));
+  }
+  lines.push("};");
+  lines.push("");
+  lines.push("/* 组名（ASCII，屏幕显示用，可自己加） */");
+  lines.push("static const char *const s_map_name[KEY_MAP_GROUPS] =");
+  lines.push("{");
+  const nm = state.name.map(n => '"' + cEscape(n) + '"').join(", ");
+  lines.push("    " + nm);
+  lines.push("};");
+
+  return lines.join("\n");
+}
+
+/* 「组合键说明」标签页：本版固件已内置，不需要打补丁 */
+function genPatch(){
+  const out = [
+    "/* ============================================================",
+    " * 组合键 / 修饰键说明 —— 本版固件已内置，不需要打补丁",
+    " *",
+    " * 1) 映射值编码（16 位）：高字节 = 修饰键位图，低字节 = 主键 HID Usage",
+    " *      0x0106 = LCtrl+C          0x0204 = LShift+A",
+    " *      0x0329 = Ctrl+Shift+Esc   0x0004 = 单个 A",
+    " *",
+    " * 2) 单独一个修饰键有两种写法，固件都认：",
+    " *      0x00E0 = LCtrl（HID usage 0xE0~0xE7）",
+    " *      0x0100 = LCtrl（修饰位写法）",
+    " *",
+    " * 3) 固件在哪做的（USB / 2.4G / BLE 三条通道共用）：",
+    " *      ui_kbd.c   UiKbd_MapValueOf() / UiKbd_ModsOf() / UiKbd_BuildHid6()",
+    " *        - 高字节      -> 报文第 0 字节（modifiers）",
+    " *        - 0xE0~0xE7   -> 同样进 modifiers，且不占 6 个键码槽位",
+    " *        - 按满 6 个键后再按 Ctrl 也不会丢修饰位",
+    " *",
+    " * 4) USB 通道：ui_kbd_ch.c 的 ch_usb_sync_map() 会把当前映射灌进",
+    " *    usb_kbd_report 的键值表（否则 USB 报表层永远发默认的 1~9）。",
+    " *",
+    " * 5) 设备端 UI 的键值列表（ui_pages2.c 的 s_hid_usage[]）已收录",
+    " *    0xE0~0xE7，可以直接把某个物理键设成 LCtrl / RShft 等。",
+    " * ============================================================ */"
+  ];
+  return out.join(String.fromCharCode(10));   // 10 = LF
+}
+
+/* 当前代码标签页：map = 映射表，patch = 组合键说明 */
+let curTab = "map";
+
+/* 统计组合键数量 */
+function comboCount(){
+  let n = 0;
+  for (let g=0; g<KEY_MAP_GROUPS; g++)
+    for (let k=0; k<KEY_MAP_KEYS; k++)
+      if (modOf(state.map[g][k]) !== 0) n++;
+  return n;
+}
+
+/* 渲染高亮代码到代码框 */
+function renderCode(){
+  const code = (curTab === "patch") ? genPatch() : genCode();
+  $("codeout").innerHTML = highlight(code);
+  // 组合键提示条
+  $("patchnote").hidden = (comboCount() === 0);
+  $("patchdot").hidden  = (comboCount() === 0);
+  return code;
+}
+
+/* 极简 C 语法高亮
+   步骤：HTML 转义 → 挖出注释/字符串存起来（占位符只含 \u0001，不含任何数字字母）
+        → 给数字/关键字加标签 → 还原 */
+function highlight(code){
+  let s = code.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  // 挖出注释 / 字符串。占位符用「\u0001 + 序号字母 + \u0001」，
+  // 字母取 A~Z（最多 26 个），绝不含数字 —— 这样第 3 步的数字正则碰不到它。
+  const stash = [];
+  const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const keep = html => {
+    const i = stash.length;
+    stash.push(html);
+    return "\u0001" + (ABC[i] || "Z") + "\u0001";
+  };
+
+  s = s.replace(/\/\*[\s\S]*?\*\//g, m => keep('<span class="cmt">'+m+'</span>'));
+  s = s.replace(/\/\/[^\n]*/g,        m => keep('<span class="cmt">'+m+'</span>'));
+  s = s.replace(/"([^"\\]|\\.)*"/g,   m => keep('<span class="str">'+m+'</span>'));
+
+  // 数字 / 关键字（先匹配长十六进制，避免 0x0106 被拆成 0x01 和 06）
+  s = s.replace(/(0x[0-9A-Fa-f]+u?|\b\d+u?\b)/g, '<span class="num">$1</span>');
+  s = s.replace(/\b(static|const|uint16_t|uint8_t|char|unsigned|void|return)\b/g, '<span class="kw">$1</span>');
+
+  // 还原
+  s = s.replace(/\u0001([A-Z])\u0001/g, (_, ch) => stash[ABC.indexOf(ch)] || "");
+
+  return s;
+}
+
+
+/* ============================================================
+   8.5 设备直连（Web Serial + 固件配置协议）
+   ------------------------------------------------------------
+   网页与固件之间走 USB CDC 虚拟串口，帧格式与 kmap_proto.c 一致：
+
+     0xA5 0x5A | CMD | SEQ | LEN(2B LE) | PAYLOAD | CRC8
+
+   CRC8: poly 0x07，初值 0，覆盖「帧头 -> 负载末尾」
+   应答: CMD | 0x80       错误: CMD 0x7F，负载 = 错误码
+   ============================================================ */
+
+/* ---- 协议常量（与 kmap_proto.h 一一对应）---- */
+const KP = {
+  SOF0: 0xA5, SOF1: 0x5A,
+  MAX_PAYLOAD: 64,
+  CMD: {
+    PING:           0x01,
+    GET_INFO:       0x02,
+    GET_MAP:        0x10,
+    SET_KEY:        0x11,
+    SET_GROUP:      0x12,
+    GET_NAME:       0x13,
+    SET_NAME:       0x14,
+    GET_ENCMAP:     0x15,
+    SET_ENCKEY:     0x16,
+    SET_GROUP_IDX:  0x20,
+    SAVE_FLASH:     0x30,
+    LOAD_FLASH:     0x31,
+    RESET_DEFAULT:  0x32,
+
+    /* ---- v4：遥控模式三张表（见 遥控模式开发文档.md 第 4 节）---- */
+    RC_GET_COUNTS:  0x40,
+    RC_GET_CATALOG: 0x41,
+    RC_SET_CATALOG: 0x42,
+    RC_GET_TBL:     0x43,
+    RC_SET_TBL:     0x44,
+    RC_GET_BIND:    0x45,
+    RC_SET_BIND:    0x46,
+    RC_SAVE:        0x47,
+
+    /* ---- v5：键盘宏（2026-10-15）---- */
+    MACRO_GET_BIND: 0x50,
+    MACRO_SET_BIND: 0x51,
+    MACRO_GET:      0x52,
+    MACRO_SET:      0x53,
+    MACRO_SAVE:     0x54
+  },
+  PONG:  0x81,
+  ERROR: 0x7F,
+  ERR_NAME: {
+    0: "无错误", 1: "CRC 校验失败", 2: "长度不合法",
+    3: "未知命令", 4: "参数越界", 5: "Flash 写入失败"
+  }
+};
+
+/* ---- CRC8，和固件 Kmap_Crc8() 同一个算法 ---- */
+function kpCrc8(bytes){
+  let crc = 0;
+  for (let i = 0; i < bytes.length; i++){
+    crc ^= bytes[i] & 0xFF;
+    for (let b = 0; b < 8; b++){
+      crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) & 0xFF : (crc << 1) & 0xFF;
+    }
+  }
+  return crc;
+}
+
+/* ---- 组一帧 ---- */
+function kpBuild(cmd, seq, payload){
+  payload = payload || [];
+  const n = payload.length;
+  const body = [KP.SOF0, KP.SOF1, cmd & 0xFF, seq & 0xFF, n & 0xFF, (n >> 8) & 0xFF, ...payload];
+  body.push(kpCrc8(body));
+  return new Uint8Array(body);
+}
+
+/* ---- 逐字节解析器（和固件 Kmap_ParserPush 行为一致）---- */
+class KpParser{
+  constructor(){ this.buf = []; }
+  reset(){ this.buf = []; }
+
+  /* 喂一个字节。返回 {cmd,seq,payload} 或 null */
+  push(byte){
+    const b = byte & 0xFF;
+    const n = this.buf.length;
+
+    if (n === 0){
+      if (b === KP.SOF0) this.buf.push(b);
+      return null;
+    }
+    if (n === 1){
+      if (b === KP.SOF1) this.buf.push(b);
+      else this.buf = (b === KP.SOF0) ? [b] : [];
+      return null;
+    }
+
+    this.buf.push(b);
+
+    if (this.buf.length < 6) return null;
+
+    const plen = this.buf[4] | (this.buf[5] << 8);
+    if (plen > KP.MAX_PAYLOAD){
+      /* 长度非法：丢掉帧头重新同步 */
+      this.buf.shift();
+      return null;
+    }
+
+    const total = 6 + plen + 1;
+    if (this.buf.length < total) return null;
+
+    const frame = this.buf.slice(0, total);
+    this.buf = this.buf.slice(total);
+
+    const got = frame[total - 1];
+    if (kpCrc8(frame.slice(0, total - 1)) !== got) return null;
+
+    return { cmd: frame[2], seq: frame[3], payload: frame.slice(6, 6 + plen) };
+  }
+}
+
+/* ---- 设备连接状态 ---- */
+const devState = {
+  port:    null,      // SerialPort
+  reader:  null,      // ReadableStreamDefaultReader
+  writer:  null,      // WritableStreamDefaultWriter
+  parser:  new KpParser(),
+  open:    false,
+  seq:     1,
+  /* 待应答表：seq -> {resolve, reject, timer} */
+  pending: new Map(),
+  info:    null,
+  busy:    false,
+  supported: (typeof navigator !== "undefined" && "serial" in navigator)
+};
+
+/* ---- 日志 ---- */
+function devLog(msg, cls){
+  const box = $("dev-log");
+  if (!box) return;
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  const ts = new Date().toTimeString().slice(0, 8);
+  d.textContent = "[" + ts + "] " + msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  /* 只留最近 200 条，免得长时间挂着吃内存 */
+  while (box.childElementCount > 200) box.removeChild(box.firstChild);
+}
+
+/* ---- 界面状态刷新 ---- */
+function devSetStatus(kind, label, sub){
+  const dot = $("dev-dot");
+  dot.className = "dev-dot" + (kind ? " " + kind : "");
+  $("dev-label").textContent = label;
+  $("dev-sub").textContent = sub || "";
+}
+
+function devEnableControls(on){
+  ["dev-ping","dev-selftest","dev-readinfo","dev-readmap","dev-readall","dev-readnames",
+   "dev-sendkey","dev-sendgroup","dev-sendall","dev-sendnames","dev-setgroup",
+   "dev-sync","dev-save","dev-load","dev-reset"].forEach(id => {
+    const el = $(id);
+    if (el) el.disabled = !on;
+  });
+  if ($("dev-disconnect")) $("dev-disconnect").disabled = !on;
+  if ($("dev-connect"))    $("dev-connect").disabled = on;
+  if (typeof macSetEnabled === "function") macSetEnabled(on);   /* 宏面板上的按钮跟着开关 */
+}
+
+/* ---- 发送一帧 + 等应答 ---- */
+function devSend(cmd, payload, timeoutMs){
+  return new Promise((resolve, reject) => {
+    if (!devState.open || !devState.writer){
+      reject(new Error("设备未连接"));
+      return;
+    }
+    if (devState.busy){
+      reject(new Error("上一条命令还在等应答"));
+      return;
+    }
+
+    const seq = devState.seq;
+    devState.seq = (devState.seq + 1) & 0xFF;
+    if (devState.seq === 0) devState.seq = 1;
+
+    const frame = kpBuild(cmd, seq, payload || []);
+    devState.busy = true;
+
+    const hex = Array.from(frame).map(x => x.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+    devLog("→ " + hex, "t-tx");
+
+    const timer = setTimeout(() => {
+      devState.pending.delete(seq);
+      devState.busy = false;
+      /* 【2026-10-15】超时要说清是哪条、连续第几条，才能一眼看出卡在哪一层 */
+      devState.timeouts = (devState.timeouts || 0) + 1;
+      devLog("这一条等了 " + (timeoutMs || 1500) + "ms 没有应答（cmd=0x"
+             + cmd.toString(16).toUpperCase().padStart(2, "0")
+             + " seq=" + seq + "）", "t-er");
+      if (devState.timeouts === 1){
+        devLog("→ 点「自检（只读）」看哪一层不通；连 PING 都超时的话，"
+               + "多半是串口选错了（键盘的虚拟串口叫「USB 串行设备 (COMx)」）。", "t-in");
+      }else if (devState.timeouts >= 3){
+        devLog("→ 已经连续 " + devState.timeouts + " 条没应答：点「断开」→「重连上次」，"
+               + "或换一个串口；设备那边也可能卡住了（拔插一次 USB 再试）。", "t-in");
+      }
+      reject(new Error("等待应答超时（" + (timeoutMs || 1500) + "ms）"));
+    }, timeoutMs || 1500);
+
+    devState.pending.set(seq, { resolve, reject, timer, cmd });
+
+    devState.writer.write(frame).catch(err => {
+      clearTimeout(timer);
+      devState.pending.delete(seq);
+      devState.busy = false;
+      reject(err);
+    });
+  });
+}
+
+/* ---- 收到一帧后分发 ---- */
+function devOnFrame(fr){
+  const hex = fr.payload.map(x => x.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+  devLog("← cmd=0x" + fr.cmd.toString(16).toUpperCase().padStart(2, "0")
+        + " seq=" + fr.seq + " len=" + fr.payload.length
+        + (hex ? "\n   " + hex : ""), "t-rx");
+
+  const p = devState.pending.get(fr.seq);
+  if (!p) return;                      /* 没有人在等，忽略（可能是上一条超时后的迟到应答）*/
+
+  clearTimeout(p.timer);
+  devState.pending.delete(fr.seq);
+  devState.busy = false;
+  devState.timeouts = 0;                /* 有应答就清零，超时提示才不会一直攒着 */
+
+  if (fr.cmd === KP.ERROR){
+    const code = fr.payload[0] || 0;
+    p.reject(new Error("设备返回错误：" + (KP.ERR_NAME[code] || ("0x" + code.toString(16)))));
+    return;
+  }
+  p.resolve(fr);
+}
+
+/* ---- 读循环 ---- */
+async function devReadLoop(){
+  while (devState.open && devState.reader){
+    let res;
+    try{
+      res = await devState.reader.read();
+    }catch(err){
+      /* 【2026-10-15】读循环一断，端口看着还"已连接"，但之后每条命令都会超时
+       * （发得出去、没人收）。所以这里不但要报，还要试着重开。 */
+      if (devState.open){
+        devLog("读串口出错：" + ((err && err.message) ? err.message : err), "t-er");
+        devState.read_retry = (devState.read_retry || 0) + 1;
+        if (devState.read_retry <= 3){
+          devLog("尝试重开读循环（第 " + devState.read_retry + " 次）…", "t-in");
+          devSetStatus("busy", "串口异常，重试中…", "");
+          await new Promise(r => setTimeout(r, 200));
+          if (devState.open) continue;
+        }
+        devSetStatus("err", "串口读不了", "请「断开」后重连");
+        devLog("读循环连续失败：点「断开」，再点「连接设备」/「重连上次」。", "t-er");
+      }
+      break;
+    }
+    if (res.done){
+      if (devState.open) devLog("串口流结束（设备被拔掉了？）", "t-er");
+      break;
+    }
+
+    devState.read_retry = 0;
+    for (const b of res.value){
+      const fr = devState.parser.push(b);
+      if (fr) devOnFrame(fr);
+    }
+  }
+}
+
+/* ---- 打开端口之后要做的事（「连接设备」和「重连上次」共用）---- */
+async function devOpenPort(port){
+  await port.open({ baudRate: 115200 });
+
+  /* 【2026-10-15】顺手把 DTR/RTS 拉高：有些 CDC 固件/驱动要 DTR 才开始收数据。
+   * 失败也无所谓（不是每个平台都支持这条）。 */
+  try{ await port.setSignals({ dataTerminalReady: true, requestToSend: true }); }catch(_){}
+
+  devState.port   = port;
+  devState.writer = port.writable.getWriter();
+  devState.reader = port.readable.getReader();
+  devState.open   = true;
+  devState.parser.reset();
+
+  /* 串口信息（VID/PID 能帮用户确认选对了设备）*/
+  let sub = "";
+  try{
+    const info = port.getInfo();
+    if (info.usbVendorId)  sub = "VID:0x" + info.usbVendorId.toString(16).toUpperCase().padStart(4, "0");
+    if (info.usbProductId) sub += (sub ? "  " : "") + "PID:0x" + info.usbProductId.toString(16).toUpperCase().padStart(4, "0");
+  }catch(_){}
+
+  devSetStatus("busy", "已打开，正在握手…", sub);
+  devLog("串口已打开（115200 8N1，虚拟串口不看波特率），开始握手…", "t-ok");
+
+  devReadLoop();
+
+  /* 【2026-10-15】自动握手：端口打开 ≠ 设备在线（选错串口、固件没开 CDC 都会"连上没反应"）。
+   * 握手不过就先把按钮全锁上 —— 否则后面每点一次都要干等 1.5 秒才报超时。 */
+  try{
+    const info = await devGetInfo();
+    devRenderInfo(info);
+    devEnableControls(true);
+    devSetStatus("on", "已连接", sub);
+    devLog("设备应答正常：固件 " + info.verMajor + "." + info.verMinor
+           + "，" + info.groups + " 组 × " + info.keys + " 键，当前组 " + (info.curGroup + 1), "t-ok");
+    devLog("建议先点「读取设备映射」把设备里的现状读回来，改完再「一键同步」。", "t-in");
+    toast("设备已连接（已握手）");
+    await devSelfTest();                /* 自动跑一遍只读自检，日志里就有全套证据 */
+  }catch(e){
+    devEnableControls(false);
+    if ($("dev-disconnect")) $("dev-disconnect").disabled = false;   /* 留个断开的口子 */
+    devSetStatus("err", "端口开了但设备不应答", "点「断开」重选端口");
+    devLog("握手失败：" + ((e && e.message) ? e.message : e), "t-er");
+    devLog("→ 这个串口多半不是键盘：确认选的是「USB 串行设备 (COMx)」，"
+           + "不是蓝牙串口、也不是别的 USB 串口；键盘要插着 USB 线。", "t-in");
+    devLog("→ 想继续试：点「断开」，再点「连接设备」/「重连上次」。", "t-in");
+    toast("这个串口没应答，可能选错了");
+  }
+}
+
+/* 把浏览器抛的串口错误翻译成人能看懂的原因 */
+function devErrHint(err){
+  const n = (err && err.name) || "";
+  if (n === "NotFoundError")     return "没有选中串口：弹窗里点了取消，或者一个串口都没出现 —— 键盘的 USB 线插了吗？设备管理器里有没有「USB 串行设备 (COMx)」？";
+  if (n === "SecurityError")     return "浏览器不给串口权限：请用 Chrome/Edge 直接打开本文件（别用 IDE 内置浏览器），或用 http://localhost 起个服务。";
+  if (n === "NetworkError")      return "端口打不开：多半被别的程序占着 —— MRS 串口监视器 / WCHISPTool / 另一个浏览器标签页，全部关掉再试。";
+  if (n === "InvalidStateError") return "端口已经被打开：多半是另一个标签页还连着，关掉旧标签页再重连。";
+  if (n === "NotAllowedError")   return "用户拒绝了串口授权。";
+  return "";
+}
+
+/* 打印环境自检（浏览器 / 协议 / 安全上下文 / Web Serial 是否可用） */
+function devLogEnv(){
+  try{
+    const ua = navigator.userAgent || "";
+    const br = /Edg\//.test(ua) ? "Edge" : (/Chrome\//.test(ua) ? "Chrome" : "其它浏览器");
+    devLog("环境：" + br + " · " + location.protocol + " · 安全上下文="
+           + (window.isSecureContext ? "是" : "否")
+           + " · Web Serial=" + (devState.supported ? "可用" : "不可用"), "t-in");
+  }catch(_){}
+}
+
+/* ---- 自检：一条条读，看哪一层不通（纯只读，不动设备里的东西）---- */
+async function devSelfTest(){
+  if (!devState.open){ toast("先连接设备"); return; }
+  devLog("=== 开始自检（只读，不改设备）===", "t-in");
+  let bad = 0;
+  const step = async (name, fn) => {
+    try{
+      const ok = await fn();
+      devLog("  [OK] " + name + (ok ? "：" + ok : ""), "t-ok");
+    }catch(e){
+      bad++;
+      devLog("  [!!] " + name + " 失败：" + ((e && e.message) ? e.message : e), "t-er");
+    }
+  };
+  await step("PING 在线检测", async () => {
+    const p = await devPing();
+    return "标识 0x" + kpU16(p, 0).toString(16).toUpperCase();
+  });
+  await step("读设备信息", async () => {
+    const i = await devGetInfo();
+    devRenderInfo(i);
+    return i.groups + " 组 × " + i.keys + " 键，固件 " + i.verMajor + "." + i.verMinor;
+  });
+  await step("读第 1 组映射", async () => {
+    const m = await devGetMap(0);
+    return "K1=0x" + (m[0] || 0).toString(16).toUpperCase().padStart(4, "0");
+  });
+  await step("读第 1 组组名", async () => {
+    const n = await devGetName(0);
+    return "「" + n + "」";
+  });
+  await step("读第 1 组编码器槽", async () => {
+    const e = await devGetEncMap(0);
+    return e.map(x => "0x" + x.toString(16).toUpperCase()).join(" / ");
+  });
+  await step("写命令能力探测", async () => {
+    await devProbeWrites();
+    return "";
+  });
+  if (bad === 0){
+    devLog("=== 自检通过：读通道全通，可以改映射后「一键同步」===", "t-ok");
+    toast("自检通过");
+  }else{
+    devLog("=== 自检有 " + bad + " 项失败（看上面每一行的原因）===", "t-er");
+    toast("自检有 " + bad + " 项失败，看日志");
+  }
+}
+
+/* ---- 连接（弹窗选端口）---- */
+async function devConnect(){
+  if (!devState.supported){
+    toast("当前浏览器不支持 Web Serial，请用 Chrome / Edge");
+    return;
+  }
+  try{
+    devSetStatus("busy", "正在选择串口…");
+    const port = await navigator.serial.requestPort();
+    await devOpenPort(port);
+
+  }catch(err){
+    devState.open = false;
+    devSetStatus("err", "连接失败", "");
+    devLog("连接失败：" + (err && err.message ? err.message : String(err)), "t-er");
+    const hint = devErrHint(err);
+    if (hint) devLog("→ " + hint, "t-in");
+    toast("连接失败：" + (err && err.message ? err.message : "未知错误"));
+  }
+}
+
+/* ---- 重连"以前授权过"的端口（弹窗里一个端口都看不到时用这个）---- */
+async function devReconnect(){
+  if (!devState.supported){ toast("当前浏览器不支持 Web Serial，请用 Chrome / Edge"); return; }
+  if (!navigator.serial.getPorts){ toast("这个浏览器不支持「重连上次」"); return; }
+  try{
+    const ports = await navigator.serial.getPorts();
+    if (!ports || !ports.length){
+      devLog("没有已授权过的端口：请先点「连接设备」，在弹窗里选中键盘的 USB 串行设备。", "t-in");
+      toast("没有已授权的端口，请点「连接设备」");
+      return;
+    }
+    devLog("找到 " + ports.length + " 个已授权端口，用第 1 个重连…", "t-in");
+    devSetStatus("busy", "正在重连…");
+    await devOpenPort(ports[0]);
+  }catch(err){
+    devState.open = false;
+    devSetStatus("err", "重连失败", "");
+    devLog("重连失败：" + (err && err.message ? err.message : String(err)), "t-er");
+    const hint = devErrHint(err);
+    if (hint) devLog("→ " + hint, "t-in");
+  }
+}
+
+/* ---- 断开 ---- */
+async function devDisconnect(){
+  devState.open = false;
+
+  /* 拒绝所有还在等的请求 */
+  for (const [seq, p] of devState.pending){
+    clearTimeout(p.timer);
+    p.reject(new Error("连接已断开"));
+  }
+  devState.pending.clear();
+  devState.busy = false;
+
+  try{ if (devState.reader) await devState.reader.cancel(); }catch(_){}
+  try{ if (devState.reader) devState.reader.releaseLock(); }catch(_){}
+  try{ if (devState.writer) devState.writer.releaseLock(); }catch(_){}
+  try{ if (devState.port)   await devState.port.close(); }catch(_){}
+
+  devState.reader = null;
+  devState.writer = null;
+  devState.port   = null;
+
+  devSetStatus("", "未连接", "");
+  devEnableControls(false);
+  devLog("已断开", "t-in");
+  toast("已断开连接");
+}
+
+/* ---- 把 Uint8Array 转成小端数值 ---- */
+function kpU16(p, off){ return (p[off] | (p[off + 1] << 8)) & 0xFFFF; }
+function kpPutU16(lo, hi){ return [lo & 0xFF, (hi >> 8) & 0xFF]; }
+
+/* ---- 命令封装 ---- */
+async function devPing(){
+  const fr = await devSend(KP.CMD.PING, []);
+  if (fr.cmd !== KP.PONG){
+    throw new Error("PING 应答命令码异常：0x" + fr.cmd.toString(16));
+  }
+  const magic = kpU16(fr.payload, 0);
+  if (magic !== 0x4B42){
+    throw new Error("对面不是本键盘（标识 0x" + magic.toString(16) + "，期望 0x4b42）");
+  }
+  return fr.payload;
+}
+
+async function devGetInfo(){
+  const fr = await devSend(KP.CMD.GET_INFO, []);
+  const p = fr.payload;
+  return {
+    magic:      kpU16(p, 0),
+    verMajor:   p[2],
+    verMinor:   p[3],
+    groups:     p[4],
+    keys:       p[5],
+    curGroup:   p[6],
+    hasRecord:  p[7],
+    fwBuild:    kpU16(p, 8)
+  };
+}
+
+async function devGetMap(group){
+  const fr = await devSend(KP.CMD.GET_MAP, [group & 0xFF]);
+  const vals = [];
+  for (let i = 0; i < KEY_MAP_KEYS; i++) vals.push(kpU16(fr.payload, i * 2));
+  return vals;
+}
+
+async function devGetName(group){
+  const fr = await devSend(KP.CMD.GET_NAME, [group & 0xFF]);
+  const bytes = fr.payload.slice(0, 16);
+  const end = bytes.indexOf(0);
+  const use = (end >= 0) ? bytes.slice(0, end) : bytes;
+  return use.map(x => String.fromCharCode(x)).join("");
+}
+
+async function devSetKey(group, key, value){
+  const fr = await devSend(KP.CMD.SET_KEY,
+    [group & 0xFF, key & 0xFF, value & 0xFF, (value >> 8) & 0xFF]);
+  return kpU16(fr.payload, 2);   /* 回读的实际值 */
+}
+
+async function devGetEncMap(group){
+  const fr = await devSend(KP.CMD.GET_ENCMAP, [group & 0xFF]);
+  const vals = [];
+  for (let i = 0; i < 3; i++) vals.push(kpU16(fr.payload, i * 2));
+  return vals;                 /* [正转, 反转, 单击] */
+}
+
+async function devSetEncKey(group, which, value){
+  /* which: 1=正转 2=反转 3=单击 */
+  const fr = await devSend(KP.CMD.SET_ENCKEY,
+    [group & 0xFF, which & 0xFF, value & 0xFF, (value >> 8) & 0xFF]);
+  return kpU16(fr.payload, 2);
+}
+
+async function devSetGroup(group, vals){
+  const pay = [group & 0xFF];
+  for (const v of vals) pay.push(v & 0xFF, (v >> 8) & 0xFF);
+  await devSend(KP.CMD.SET_GROUP, pay);
+}
+
+async function devSetName(group, name){
+  const pay = [group & 0xFF];
+  for (const ch of name.slice(0, 16)){
+    const c = ch.charCodeAt(0);
+    if (c >= 0x20 && c < 0x7F) pay.push(c);
+  }
+  await devSend(KP.CMD.SET_NAME, pay);
+}
+
+async function devSetGroupIdx(group){
+  const fr = await devSend(KP.CMD.SET_GROUP_IDX, [group & 0xFF]);
+  return fr.payload[0];
+}
+
+async function devSaveFlash(){ await devSend(KP.CMD.SAVE_FLASH,  [], 3000); }
+async function devLoadFlash(){
+  const fr = await devSend(KP.CMD.LOAD_FLASH, [], 3000);
+  return fr.payload[0] === 1;
+}
+async function devResetDefault(){ await devSend(KP.CMD.RESET_DEFAULT, [], 3000); }
+
+/* ---- 键盘宏（协议 v5）---- */
+const MAC_SLOTS = 4, MAC_STEPS = 8;
+
+async function devMacroGetBind(group){
+  const fr = await devSend(KP.CMD.MACRO_GET_BIND, [group & 0xFF]);
+  const out = [];
+  for (let i = 0; i < 9; i++) out.push((fr.payload[i] || 0) & 0x0F);
+  return out;
+}
+async function devMacroSetBind(group, b9){
+  const pay = [group & 0xFF];
+  for (let i = 0; i < 9; i++) pay.push((b9[i] || 0) & 0xFF);
+  await devSend(KP.CMD.MACRO_SET_BIND, pay);
+}
+async function devMacroGet(idx){
+  const fr = await devSend(KP.CMD.MACRO_GET, [idx & 0xFF]);
+  const steps = [];
+  for (let i = 0; i < MAC_STEPS; i++) steps.push(kpU16(fr.payload, 1 + i * 2));
+  return { len: (fr.payload[0] || 0), steps: steps };
+}
+async function devMacroSet(idx, len, steps){
+  const pay = [idx & 0xFF, len & 0xFF];
+  for (let i = 0; i < MAC_STEPS; i++){
+    const v = steps[i] || 0;
+    pay.push(v & 0xFF, (v >> 8) & 0xFF);
+  }
+  await devSend(KP.CMD.MACRO_SET, pay);
+}
+async function devMacroSaveFlash(){ await devSend(KP.CMD.MACRO_SAVE, [], 3000); }
+
+/* ============================================================
+ * 写命令能力探测（回答"为什么网页改映射一直不成功"）
+ *
+ * 做法：故意发**参数越界**的正确长度帧 —— 支持这条命令的固件一定会回
+ * ERROR(4 参数越界)，而且不会改任何东西；不认识的命令则完全不回（超时）。
+ * 这样一次就能看出"是网页不对"还是"设备固件里压根没这条命令"。
+ * ============================================================ */
+async function devProbeWrites(){
+  if (!devState.open){ toast("先连接设备"); return; }
+  const list = [
+    ["SET_KEY 写单键",        KP.CMD.SET_KEY,        [0xFF, 1, 0, 0]],
+    ["SET_GROUP 写整组",      KP.CMD.SET_GROUP,      [0xFF].concat(new Array(18).fill(0))],
+    ["SET_NAME 写组名",       KP.CMD.SET_NAME,       [0xFF, 0x41]],
+    ["SET_ENCKEY 写编码器槽", KP.CMD.SET_ENCKEY,     [0xFF, 1, 0, 0]],
+    ["SET_GROUP_IDX 切当前组",KP.CMD.SET_GROUP_IDX,  [0xFF]],
+    ["MACRO_SET 写宏",        KP.CMD.MACRO_SET,      [0xFF, 0].concat(new Array(16).fill(0))],
+    ["MACRO_SET_BIND 绑宏",   KP.CMD.MACRO_SET_BIND, [0xFF].concat(new Array(9).fill(0))]
+  ];
+  devLog("=== 写命令能力探测（越界参数，不会改设备）===", "t-in");
+  const miss = [];
+  for (const it of list){
+    const name = it[0], cmd = it[1], pay = it[2];
+    try{
+      const fr = await devSend(cmd, pay, 600);
+      devLog("  [??] " + name + "：居然接受了越界参数（应答 cmd=0x"
+             + fr.cmd.toString(16).toUpperCase() + "）", "t-in");
+    }catch(e){
+      const msg = (e && e.message) || "";
+      if (msg.indexOf("设备返回错误") >= 0){
+        devLog("  [OK] " + name + "：设备认识这条命令（" + msg + "）", "t-ok");
+      }else{
+        miss.push(name);
+        devLog("  [!!] " + name + "：没有应答（" + msg + "）→ 固件里没有这条命令", "t-er");
+      }
+    }
+  }
+  if (miss.length === 0){
+    devLog("=== 探测结果：写命令全部支持，问题不在协议层 ===", "t-ok");
+  }else{
+    devLog("=== 探测结果：设备固件缺少 " + miss.join(" / ")
+           + " → 这就是「能读不能写」的原因，请烧最新固件 ===", "t-er");
+  }
+}
+
+/* ---- 把设备信息渲染到界面 ---- */
+function devRenderInfo(info){
+  devState.info = info;
+  const kv = $("dev-infokv");
+  kv.innerHTML = "";
+  const rows = [
+    ["标识",     "0x" + info.magic.toString(16).toUpperCase().padStart(4, "0") + "（KB）"],
+    ["协议版本", "v" + info.verMajor + "." + info.verMinor],
+    ["映射组数", info.groups],
+    ["每组键数", info.keys],
+    ["当前组号", info.curGroup],
+    ["Flash 记录", info.hasRecord ? "有（改过的映射已存盘）" : "无（用的出厂默认）"],
+    ["固件标记", "0x" + info.fwBuild.toString(16).toUpperCase().padStart(4, "0")]
+  ];
+  for (const [k, v] of rows){
+    const dk = document.createElement("div");
+    dk.className = "k"; dk.textContent = k;
+    const dv = document.createElement("div");
+    dv.className = "v"; dv.textContent = v;
+    kv.appendChild(dk); kv.appendChild(dv);
+  }
+  $("dev-infobox").hidden = false;
+}
+
+/* ---- 把设备映射灌进界面 ---- */
+async function devReadMapIntoUI(){
+  const g = state.cur;
+  const vals = await devGetMap(g);
+
+  for (let k = 0; k < KEY_MAP_KEYS; k++){
+    /* 设备端的键号是 1..9 */
+    if (vals[k] !== undefined) state.map[g][k] = vals[k] & 0xFFFF;
+  }
+  const enc = await devGetEncMap(g);
+  for (let e = 0; e < 3; e++){
+    if (enc[e] !== undefined) state.enc[g][e] = enc[e] & 0xFFFF;
+  }
+  renderAll();
+  toast("已读取第 " + (g + 1) + " 组映射");
+  devLog("第 " + (g + 1) + " 组映射已读回界面", "t-ok");
+}
+
+/* ---- 读取全部 5 组 ---- */
+async function devReadAllIntoUI(){
+  for (let g = 0; g < KEY_MAP_GROUPS; g++){
+    const vals = await devGetMap(g);
+    for (let k = 0; k < KEY_MAP_KEYS; k++){
+      if (vals[k] !== undefined) state.map[g][k] = vals[k] & 0xFFFF;
+    }
+    const enc = await devGetEncMap(g);
+    for (let e = 0; e < 3; e++){
+      if (enc[e] !== undefined) state.enc[g][e] = enc[e] & 0xFFFF;
+    }
+  }
+  renderAll();
+  toast("已读取全部 " + KEY_MAP_GROUPS + " 组映射");
+  devLog("全部 " + KEY_MAP_GROUPS + " 组映射已读回界面", "t-ok");
+}
+
+/* ---- 读取全部组名 ---- */
+async function devReadNamesIntoUI(){
+  for (let g = 0; g < KEY_MAP_GROUPS; g++){
+    const nm = await devGetName(g);
+    if (nm) state.name[g] = nm;
+  }
+  renderAll();
+  toast("已读取组名");
+  devLog("组名已读回：" + state.name.join(" / "), "t-ok");
+}
+
+/* ---- 下发界面里的映射 ---- */
+async function devSendKeyToDevice(){
+  if (state.sel === null){
+    toast("请先在左侧点选一个按键");
+    return;
+  }
+  const g = state.cur;
+  const k = state.sel;                 /* 0..8 按键；9..11 编码器槽 */
+  const want = curVal(g,k) & 0xFFFF;
+  const got = (k < KEY_MAP_KEYS)
+    ? await devSetKey(g, k + 1, want)
+    : await devSetEncKey(g, k - KEY_MAP_KEYS + 1, want);
+  if (got !== want){
+    throw new Error("回读值不符：写入 0x" + want.toString(16) + "，设备回 0x" + got.toString(16));
+  }
+  toast("K" + (k + 1) + " 已下发：" + fullName(got));
+  devLog("下发 K" + (k + 1) + " = " + hex2(want) + "（" + fullName(want) + "）已确认", "t-ok");
+}
+
+async function devSendGroupToDevice(){
+  const g = state.cur;
+  await devSetGroup(g, state.map[g]);
+  for (let e = 0; e < 3; e++) await devSetEncKey(g, e + 1, state.enc[g][e]);
+  toast("第 " + (g + 1) + " 组已下发（含编码器槽）");
+  devLog("第 " + (g + 1) + " 组整组下发完成", "t-ok");
+}
+
+async function devSendAllToDevice(){
+  for (let g = 0; g < KEY_MAP_GROUPS; g++){
+    await devSetGroup(g, state.map[g]);
+    for (let e = 0; e < 3; e++) await devSetEncKey(g, e + 1, state.enc[g][e]);
+  }
+  toast("全部 " + KEY_MAP_GROUPS + " 组已下发（含编码器槽）");
+  devLog("全部 " + KEY_MAP_GROUPS + " 组下发完成", "t-ok");
+}
+
+async function devSendNamesToDevice(){
+  for (let g = 0; g < KEY_MAP_GROUPS; g++){
+    await devSetName(g, state.name[g] || "");
+  }
+  toast("组名已下发");
+  devLog("组名下发完成", "t-ok");
+}
+
+async function devSetCurGroup(){
+  const got = await devSetGroupIdx(state.cur);
+  toast("设备当前组已切到第 " + (got + 1) + " 组");
+  devLog("当前组切换为 " + got, "t-ok");
+  if (devState.info) devState.info.curGroup = got;
+}
+
+/* ---- 一键同步：映射 + 组名 + 当前组 + 存盘 ---- */
+async function devSyncAll(){
+  devLog("=== 开始一键同步 ===", "t-in");
+  /* 【2026-10-15】每一步都带上"第几步"，超时的时候日志里直接能看出卡在哪一条，
+   * 不用再靠猜（原来的报错只有一句"等待应答超时"）。 */
+  for (let g = 0; g < KEY_MAP_GROUPS; g++){
+    try{
+      await devSetGroup(g, state.map[g]);
+      for (let e = 0; e < 3; e++) await devSetEncKey(g, e + 1, state.enc[g][e]);
+    }catch(e){
+      throw new Error("第 " + (g + 1) + " 组映射下发失败 → " + ((e && e.message) || e));
+    }
+    devLog("  第 " + (g + 1) + " 组映射（含编码器槽）已下发", "t-in");
+  }
+  for (let g = 0; g < KEY_MAP_GROUPS; g++){
+    try{
+      await devSetName(g, state.name[g] || "");
+    }catch(e){
+      throw new Error("第 " + (g + 1) + " 组组名下发失败 → " + ((e && e.message) || e));
+    }
+  }
+  devLog("  组名已下发", "t-in");
+  try{
+    await devSetGroupIdx(state.cur);
+  }catch(e){
+    throw new Error("切换当前组失败 → " + ((e && e.message) || e));
+  }
+  devLog("  当前组已切到 " + state.cur, "t-in");
+  try{
+    await devSaveFlash();
+  }catch(e){
+    throw new Error("写设备 Flash 失败 → " + ((e && e.message) || e));
+  }
+  devLog("  已写入 Flash", "t-ok");
+  devLog("=== 一键同步完成 ===", "t-ok");
+  toast("已同步并保存到设备");
+}
+
+/* ---- 保存 / 载入 / 恢复 ---- */
+async function devSaveToFlash(){
+  await devSaveFlash();
+  toast("已保存到设备 Flash（掉电不丢）");
+  devLog("SAVE_FLASH 成功", "t-ok");
+  const info = await devGetInfo();
+  devRenderInfo(info);
+}
+
+async function devLoadFromFlash(){
+  const ok = await devLoadFlash();
+  if (!ok){
+    toast("设备里还没有存过映射");
+    devLog("Flash 里没有有效记录", "t-er");
+    return;
+  }
+  await devReadAllIntoUI();
+  await devReadNamesIntoUI();
+  devLog("已从 Flash 重新载入", "t-ok");
+  toast("已从设备 Flash 载入");
+}
+
+async function devResetToDefault(){
+  if (!confirm("确定要让设备恢复出厂默认映射吗？\n（会覆盖设备里的映射并写入 Flash）")) return;
+  await devResetDefault();
+  await devReadAllIntoUI();
+  await devReadNamesIntoUI();
+  toast("设备已恢复出厂默认");
+  devLog("RESET_DEFAULT 完成", "t-ok");
+}
+
+/* ---- 统一的错误包装 ---- */
+async function devRun(label, fn){
+  try{
+    await fn();
+  }catch(err){
+    const msg = (err && err.message) ? err.message : String(err);
+    devSetStatus("err", "通信异常", "");
+    devLog(label + " 失败：" + msg, "t-er");
+    toast(label + " 失败：" + msg);
+    /* 出错后清掉卡住的 busy，让下一条命令能发 */
+    devState.busy = false;
+    setTimeout(() => {
+      if (devState.open) devSetStatus("on", "已连接",
+        $("dev-sub").textContent);
+    }, 1200);
+  }
+}
+
+/* ---- 绑定按钮 ---- */
+function devBindUI(){
+  const u = $("dev-unsupported");
+  if (!devState.supported){
+    if (u) u.hidden = false;
+  }
+
+  $("dev-connect").addEventListener("click", () => devConnect());
+  $("dev-disconnect").addEventListener("click", () => devDisconnect());
+  $("dev-reconnect").addEventListener("click", () => devReconnect());
+
+  $("dev-selftest").addEventListener("click", () => devRun("自检", devSelfTest));
+
+  $("dev-ping").addEventListener("click", () => devRun("PING", async () => {
+    const p = await devPing();
+    devLog("PONG 收到，设备在线（标识 0x" + kpU16(p, 0).toString(16) + "）", "t-ok");
+    toast("PING 成功，设备在线");
+  }));
+
+  $("dev-readinfo").addEventListener("click", () => devRun("读设备信息", async () => {
+    const info = await devGetInfo();
+    devRenderInfo(info);
+    toast("设备信息已读取");
+  }));
+
+  $("dev-readmap").addEventListener("click", () => devRun("读映射", devReadMapIntoUI));
+  $("dev-readall").addEventListener("click", () => devRun("读全部映射", devReadAllIntoUI));
+  $("dev-readnames").addEventListener("click", () => devRun("读组名", devReadNamesIntoUI));
+
+  $("dev-sendkey").addEventListener("click", () => devRun("下发单键", devSendKeyToDevice));
+  $("dev-sendgroup").addEventListener("click", () => devRun("下发整组", devSendGroupToDevice));
+  $("dev-sendall").addEventListener("click", () => devRun("下发全部", devSendAllToDevice));
+  $("dev-sendnames").addEventListener("click", () => devRun("下发组名", devSendNamesToDevice));
+  $("dev-setgroup").addEventListener("click", () => devRun("切换当前组", devSetCurGroup));
+  $("dev-sync").addEventListener("click", () => devRun("一键同步", devSyncAll));
+
+  $("dev-save").addEventListener("click", () => devRun("保存到 Flash", devSaveToFlash));
+  $("dev-load").addEventListener("click", () => devRun("从 Flash 载入", devLoadFromFlash));
+  $("dev-reset").addEventListener("click", () => devRun("恢复出厂默认", devResetToDefault));
+
+  /* 设备被拔掉（物理断开）也要把界面复位 */
+  if (devState.supported && navigator.serial.addEventListener){
+    navigator.serial.addEventListener("disconnect", e => {
+      if (devState.port && e.target === devState.port){
+        devLog("设备已被拔出", "t-er");
+        devDisconnect();
+      }
+    });
+  }
+}
+
+/* ============================================================
+   9. 全部渲染
+   ============================================================ */
+function renderAll(){
+  if (window.macReady) macRenderAll();      /* 宏面板跟着当前组刷新 */
+  renderTabs();
+  renderGrid();
+  renderEditInfo();
+  renderValueList();
+  renderStats();
+  renderCode();
+}
+
+/* ============================================================
+   10. 交互事件
+   ============================================================ */
+
+/* 组名 */
+$("gname").addEventListener("input", e => {
+  const v = e.target.value;
+  state.name[state.cur] = v;
+  $("gnamelen").textContent = v.length + "/20";
+  renderTabs();
+  renderCode();
+});
+
+/* 搜索 */
+$("search").addEventListener("input", e => {
+  curFilter = e.target.value;
+  renderValueList();
+});
+
+/* 键盘录入：进入捕获态 */
+$("btn-capture").onclick = () => {
+  if (state.cap.on){ captureStop(); toast("已退出录入"); return; }
+  captureStart();
+};
+
+/* 置空此键 */
+$("btn-clear").onclick = () => {
+  if (state.sel === null){ toast("请先选择一个按键"); return; }
+  state.map[state.cur][state.sel] = 0;
+  renderGrid(); renderEditInfo(); renderValueList(); renderStats(); renderCode(); renderTabs();
+  toast("已置空 K" + (state.sel+1));
+};
+
+/* 恢复此键默认 */
+$("btn-resetkey").onclick = () => {
+  if (state.sel === null){ toast("请先选择一个按键"); return; }
+  const g = state.cur, k = state.sel;
+  state.map[g][k] = DEFAULT_MAP[g][k];
+  renderGrid(); renderEditInfo(); renderValueList(); renderStats(); renderCode(); renderTabs();
+  toast("K" + (k+1) + " 已恢复默认");
+};
+
+/* 本组填充 */
+$("btn-fillrow").onclick = () => {
+  if (state.sel === null){ toast("请先选择一个按键作为填充值"); return; }
+  const g = state.cur, v = state.map[g][state.sel];
+  for (let k=0;k<KEY_MAP_KEYS;k++) state.map[g][k] = v;
+  renderGrid(); renderEditInfo(); renderValueList(); renderStats(); renderCode(); renderTabs();
+  toast("本组已全部填充为 " + fullName(v));
+};
+
+/* 复制本组 */
+$("btn-copytoclip").onclick = async () => {
+  const txt = JSON.stringify(state.map[state.cur]);
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast("本组映射已复制到剪贴板");
+  }catch(e){
+    window.prompt("复制这段文本：", txt);
+  }
+};
+
+/* 粘贴到本组 */
+$("btn-pasteclip").onclick = async () => {
+  try{
+    const txt = await navigator.clipboard.readText();
+    const arr = JSON.parse(txt);
+    if (!Array.isArray(arr) || arr.length !== KEY_MAP_KEYS)
+      throw new Error("长度必须是 " + KEY_MAP_KEYS);
+    state.map[state.cur] = arr.map(x => (Number(x) & 0xFFFF));
+    renderAll();
+    toast("已粘贴到 GROUP " + state.cur);
+  }catch(e){
+    toast("粘贴失败：" + e.message);
+  }
+};
+
+/* 重置本组 */
+$("btn-resetgroup").onclick = () => {
+  state.map[state.cur] = DEFAULT_MAP[state.cur].slice();
+  state.name[state.cur] = DEFAULT_NAME[state.cur];
+  renderAll();
+  toast("GROUP " + state.cur + " 已重置");
+};
+
+/* 全部恢复默认 */
+$("btn-resetall").onclick = () => {
+  if (!confirm("确定把全部 4 组映射和组名都恢复成工程默认值？")) return;
+  state.map  = DEFAULT_MAP.map(r=>r.slice());
+  state.name = DEFAULT_NAME.slice();
+  state.sel  = null;
+  renderAll();
+  toast("已全部恢复默认");
+};
+
+/* 导出 JSON */
+$("btn-export").onclick = () => {
+  const data = {
+    _format: "ch592x-keymap",
+    _version: 1,
+    _exported: new Date().toISOString(),
+    groups: KEY_MAP_GROUPS,
+    keys: KEY_MAP_KEYS,
+    map: state.map,
+    name: state.name
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "ch592x-keymap-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("已导出 JSON");
+};
+
+/* 导入 JSON */
+$("btn-import").onclick = () => $("filein").click();
+$("filein").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const d = JSON.parse(rd.result);
+      if (!Array.isArray(d.map) || d.map.length !== KEY_MAP_GROUPS)
+        throw new Error("map 长度必须是 " + KEY_MAP_GROUPS);
+      state.map = d.map.map(r => r.map(x => Number(x) & 0xFFFF));
+      if (Array.isArray(d.name) && d.name.length === KEY_MAP_GROUPS)
+        state.name = d.name.map(String);
+      state.sel = null;
+      renderAll();
+      toast("导入成功");
+    }catch(err){
+      toast("导入失败：" + err.message);
+    }
+  };
+  rd.readAsText(f);
+  e.target.value = "";
+});
+
+/* 代码标签页切换 */
+document.querySelectorAll(".codetab").forEach(tab => {
+  tab.onclick = () => {
+    curTab = tab.dataset.tab;
+    document.querySelectorAll(".codetab").forEach(t => t.classList.toggle("on", t === tab));
+    renderCode();
+  };
+});
+
+/* 复制 C 代码（复制纯文本，不带高亮标签） */
+$("btn-copyc").onclick = async () => {
+  const code = (curTab === "patch") ? genPatch() : genCode();
+  try{
+    await navigator.clipboard.writeText(code);
+    toast((curTab === "patch" ? "组合键说明" : "C 代码") + "已复制到剪贴板");
+  }catch(e){
+    const r = document.createRange();
+    r.selectNodeContents($("codeout"));
+    const s = window.getSelection();
+    s.removeAllRanges(); s.addRange(r);
+    toast("已选中代码，请按 Ctrl+C");
+  }
+};
+
+/* 下载 .c */
+$("btn-downc").onclick = () => {
+  const isPatch = (curTab === "patch");
+  const code = isPatch ? genPatch() : genCode();
+  const blob = new Blob([code + "\n"], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = isPatch ? "keymap_combo_notes.c" : "key_matrix_map.c";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("已下载 " + a.download);
+};
+
+/* 对比默认：只输出改动项 */
+$("btn-diff").onclick = () => {
+  const lines = [];
+  let n = 0;
+  for (let g=0;g<KEY_MAP_GROUPS;g++){
+    for (let k=0;k<KEY_MAP_KEYS;k++){
+      if (state.map[g][k] !== DEFAULT_MAP[g][k]){
+        const a = DEFAULT_MAP[g][k], b = state.map[g][k];
+        lines.push("G" + g + " K" + (k+1) +
+          ":  " + fullName(a) + " (0x" + hex2(modOf(a)) + hex2(keyOf(a)) + ")" +
+          "  →  " + fullName(b) + " (0x" + hex2(modOf(b)) + hex2(keyOf(b)) + ")");
+        n++;
+      }
+    }
+  }
+  for (let g=0;g<KEY_MAP_GROUPS;g++){
+    if (state.name[g] !== DEFAULT_NAME[g]){
+      lines.push("组名 G" + g + ":  \"" + DEFAULT_NAME[g] + "\"" +
+                 "  →  \"" + state.name[g] + "\"");
+      n++;
+    }
+  }
+  if (n === 0){
+    alert("当前配置与工程默认值完全一致，没有任何改动。");
+  }else{
+    alert("共 " + n + " 处改动：\n\n" + lines.join("\n"));
+  }
+};
+
+/* ============================================================
+   11. 工具
+   ============================================================ */
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                  .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+let toastTimer;
+function toast(msg){
+  const t = $("toast");
+  $("toastmsg").textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 1900);
+}
+
+/* 键盘快捷键与捕获逻辑已在 6.5 节统一处理 */
+
+/* ============================================================
+   11.4 键盘宏编辑器（2026-10-15）
+   ------------------------------------------------------------
+   macData[i] = { len, steps[8] }     i = 0..3 对应设备上的宏 1..4
+   macBind[k] = 0 / 1..4             当前组 K1..K9 各自绑哪个宏
+   每一步 uint16：高字节 = 修饰位图，低字节 = HID Usage（和按键映射同格式）
+   ============================================================ */
+let macData = [];
+let macSel  = 0;
+let macBind = [];
+window.macRec = false;
+
+const MAC_MODS = [
+  ["无",             0],
+  ["Ctrl",           MOD_LCTRL],
+  ["Shift",          MOD_LSHIFT],
+  ["Alt",            MOD_LALT],
+  ["Win",            MOD_LGUI],
+  ["Ctrl+Shift",     MOD_LCTRL | MOD_LSHIFT],
+  ["Ctrl+Alt",       MOD_LCTRL | MOD_LALT],
+  ["Shift+Alt",      MOD_LSHIFT | MOD_LALT],
+  ["Ctrl+Shift+Alt", MOD_LCTRL | MOD_LSHIFT | MOD_LALT]
+];
+
+function macInit(){
+  macData = [];
+  for (let i = 0; i < MAC_SLOTS; i++){
+    macData.push({ len: 0, steps: new Array(MAC_STEPS).fill(0) });
+  }
+  macBind = new Array(9).fill(0);
+}
+
+function macModOf(v){ return (v >> 8) & 0xFF; }
+function macKeyOf(v){ return v & 0xFF; }
+
+function macRecalcLen(){
+  const m = macData[macSel];
+  let n = 0;
+  for (let i = 0; i < MAC_STEPS; i++) if (m.steps[i] !== 0) n = i + 1;
+  m.len = n;
+}
+
+function macRenderTabs(){
+  const box = $("mac-tabs");
+  if (!box) return;
+  box.innerHTML = "";
+  for (let i = 0; i < MAC_SLOTS; i++){
+    const b = document.createElement("button");
+    b.className = "mac-tab" + (i === macSel ? " on" : "");
+    b.innerHTML = "宏" + (i + 1) + '<span class="nn">' + macData[i].len + " 步</span>";
+    b.onclick = () => { macSel = i; macRenderAll(); };
+    box.appendChild(b);
+  }
+  const gn = $("mac-groupname");
+  if (gn) gn.textContent = "第 " + (state.cur + 1) + " 组";
+}
+
+function macRenderSteps(){
+  const box = $("mac-steps");
+  if (!box) return;
+  const m = macData[macSel];
+  box.innerHTML = "";
+  for (let i = 0; i < MAC_STEPS; i++){
+    const row = document.createElement("div");
+    row.className = "mac-step" + (i < m.len ? "" : " off");
+
+    const ix = document.createElement("div");
+    ix.className = "ix";
+    ix.textContent = (i + 1) + ".";
+    row.appendChild(ix);
+
+    const selM = document.createElement("select");
+    const curM = macModOf(m.steps[i]);
+    let hasM = false;
+    for (const it of MAC_MODS){
+      const o = document.createElement("option");
+      o.value = it[1]; o.textContent = it[0];
+      if (it[1] === curM){ o.selected = true; hasM = true; }
+      selM.appendChild(o);
+    }
+    if (!hasM){
+      const o = document.createElement("option");
+      o.value = curM; o.textContent = "0x" + curM.toString(16).toUpperCase();
+      o.selected = true;
+      selM.insertBefore(o, selM.firstChild);
+    }
+    selM.onchange = () => {
+      m.steps[i] = ((parseInt(selM.value, 10) & 0xFF) << 8) | macKeyOf(m.steps[i]);
+      macRecalcLen(); macRenderAll();
+    };
+    row.appendChild(selM);
+
+    const selK = document.createElement("select");
+    const curK = macKeyOf(m.steps[i]);
+    const o0 = document.createElement("option");
+    o0.value = 0; o0.textContent = "（空）";
+    if (curK === 0) o0.selected = true;
+    selK.appendChild(o0);
+    for (const u of HID_USAGE){
+      const o = document.createElement("option");
+      o.value = u;
+      o.textContent = "0x" + u.toString(16).toUpperCase().padStart(2, "0")
+                      + "  " + (USAGE_NAME[u] || "");
+      if (u === curK) o.selected = true;
+      selK.appendChild(o);
+    }
+    selK.onchange = () => {
+      m.steps[i] = (macModOf(m.steps[i]) << 8) | (parseInt(selK.value, 10) & 0xFF);
+      macRecalcLen(); macRenderAll();
+    };
+    row.appendChild(selK);
+
+    const clr = document.createElement("button");
+    clr.className = "btn sm ghost";
+    clr.textContent = "清除";
+    clr.onclick = () => { m.steps[i] = 0; macRecalcLen(); macRenderAll(); };
+    row.appendChild(clr);
+
+    box.appendChild(row);
+  }
+}
+
+function macRenderBind(){
+  const box = $("mac-bind");
+  if (!box) return;
+  box.innerHTML = "";
+  for (let k = 0; k < 9; k++){
+    const lab = document.createElement("label");
+    const sp = document.createElement("span");
+    sp.textContent = "K" + (k + 1);
+    lab.appendChild(sp);
+
+    const sel = document.createElement("select");
+    const o0 = document.createElement("option");
+    o0.value = 0; o0.textContent = "不绑";
+    if (macBind[k] === 0) o0.selected = true;
+    sel.appendChild(o0);
+    for (let i = 1; i <= MAC_SLOTS; i++){
+      const o = document.createElement("option");
+      o.value = i; o.textContent = "宏" + i;
+      if (macBind[k] === i) o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.onchange = () => { macBind[k] = parseInt(sel.value, 10) | 0; };
+    lab.appendChild(sel);
+    box.appendChild(lab);
+  }
+}
+
+function macRenderAll(){
+  macRenderTabs();
+  macRenderSteps();
+  macRenderBind();
+}
+
+/* ---- 录制：直接按 PC 键盘，一按一步 ---- */
+function macRecStop(){
+  window.macRec = false;
+  const b = $("mac-rec");
+  if (b){ b.classList.remove("mac-rec"); b.textContent = "录制（按 PC 键盘）"; }
+  macRecalcLen();
+  macRenderAll();
+  const st = $("mac-status");
+  if (st) st.textContent = "录制结束：宏" + (macSel + 1) + " 共 " + macData[macSel].len
+                           + " 步。连上设备后点「写入设备并保存」。";
+}
+function macRecKey(e){
+  if (e.code === "Escape"){ e.preventDefault(); macRecStop(); return; }
+  const hid = CODE_TO_HID[e.code];
+  if (hid === undefined) return;
+  const m = macData[macSel];
+  if (m.len >= MAC_STEPS){ macRecStop(); return; }
+  let mods = 0;
+  if (e.ctrlKey)  mods |= MOD_LCTRL;
+  if (e.shiftKey) mods |= MOD_LSHIFT;
+  if (e.altKey)   mods |= MOD_LALT;
+  if (e.metaKey)  mods |= MOD_LGUI;
+  m.steps[m.len] = ((mods & 0xFF) << 8) | (hid & 0xFF);
+  m.len++;
+  macRenderAll();
+  e.preventDefault();
+}
+
+/* ---- 和设备之间搬宏 ---- */
+async function macReadFromDevice(){
+  const r = await devMacroGet(macSel + 1);
+  macData[macSel] = { len: r.len, steps: r.steps };
+  macBind = await devMacroGetBind(state.cur);
+  macRenderAll();
+}
+async function macWriteToDevice(){
+  await devMacroSet(macSel + 1, macData[macSel].len, macData[macSel].steps);
+}
+async function macWriteAndSave(){
+  await macWriteToDevice();
+  await devMacroSetBind(state.cur, macBind);
+  await devMacroSaveFlash();
+}
+
+function macBindUI(){
+  const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("click", fn); };
+
+  on("mac-rec", () => {
+    if (window.macRec){ macRecStop(); return; }
+    window.macRec = true;
+    macData[macSel] = { len: 0, steps: new Array(MAC_STEPS).fill(0) };
+    macRenderAll();
+    const b = $("mac-rec");
+    if (b){ b.classList.add("mac-rec"); b.textContent = "停止录制（Esc）"; }
+    const st = $("mac-status");
+    if (st) st.textContent = "录制中：直接按 PC 键盘（Ctrl+C 这样按就行），每按一次记一步；Esc 结束。";
+  });
+
+  on("mac-clear", () => {
+    macData[macSel] = { len: 0, steps: new Array(MAC_STEPS).fill(0) };
+    macRenderAll();
+  });
+  on("mac-bind-clear", () => { macBind = new Array(9).fill(0); macRenderAll(); });
+
+  on("mac-read", () => devRun("读宏", async () => {
+    await macReadFromDevice();
+    devLog("已从设备读回 宏" + (macSel + 1) + "（" + macData[macSel].len + " 步）和第 "
+           + (state.cur + 1) + " 组绑定", "t-ok");
+    toast("已从设备读取宏");
+  }));
+  on("mac-write", () => devRun("写宏", async () => {
+    await macWriteToDevice();
+    devLog("宏" + (macSel + 1) + " 已写入设备内存（还要点「写入设备并保存」才会进 Flash）", "t-ok");
+    toast("宏已下发（未存盘）");
+  }));
+  on("mac-bind-read", () => devRun("读绑定", async () => {
+    macBind = await devMacroGetBind(state.cur);
+    macRenderAll();
+    devLog("已读回第 " + (state.cur + 1) + " 组绑定：" + macBind.join(","), "t-ok");
+    toast("绑定已读回");
+  }));
+  on("mac-bind-write", () => devRun("写绑定", async () => {
+    await devMacroSetBind(state.cur, macBind);
+    devLog("第 " + (state.cur + 1) + " 组绑定已写入设备内存", "t-ok");
+    toast("绑定已下发（未存盘）");
+  }));
+  on("mac-save", () => devRun("写入并保存宏", async () => {
+    await macWriteAndSave();
+    devLog("宏和绑定已写入设备并保存到 Flash", "t-ok");
+    toast("已写入设备并保存");
+  }));
+
+  /* 宏面板里也要能看设备信息 / 存盘按钮的状态：复用 devEnableControls 的开关逻辑 */
+  const ids = ["mac-read", "mac-write", "mac-save", "mac-bind-read", "mac-bind-write"];
+  ids.forEach(id => { const el = $(id); if (el) el.disabled = true; });
+}
+
+/* 设备连上/断开时开关宏面板上的按钮 */
+function macSetEnabled(on){
+  ["mac-read", "mac-write", "mac-save", "mac-bind-read", "mac-bind-write"]
+    .forEach(id => { const el = $(id); if (el) el.disabled = !on; });
+}
+
+/* ============================================================
+   11.5 顶部：键盘设置 / 遥控设置 切换（2026-10-15）
+   ------------------------------------------------------------
+   键盘设置 = 左栏 1~4 号面板 + 右栏代码/说明；遥控设置 = 只留 6 号面板。
+   「设备直连」两个标签页都要用（遥控那三张表也得连 USB 才能读写），
+   所以它一直显示。选择记在 localStorage 里，下次打开还是这一页。
+   ============================================================ */
+function setTopTab(which, save){
+  const rc = (which === "rc");
+  const left = $("colleft");
+  if (left){
+    Array.prototype.forEach.call(left.children, el => {
+      if (el && el.classList && el.classList.contains("panel")){
+        const id = el.id || "";
+        if (id === "panel-device")     el.hidden = false;   /* 两边共用 */
+        else if (id === "panel-rc")    el.hidden = !rc;
+        else                           el.hidden = rc;      /* 键盘的 1~4 号面板 */
+      }
+    });
+  }
+  if ($("colright")) $("colright").hidden = rc;
+  const w = document.querySelector(".wrap");
+  if (w) w.classList.toggle("onecol", rc);
+  if ($("top-kb")) $("top-kb").classList.toggle("on", !rc);
+  if ($("top-rc")) $("top-rc").classList.toggle("on", rc);
+  if ($("top-tip")) $("top-tip").textContent = rc
+    ? "遥控设置：动作目录 / 动作编号表 / 设备绑定（先在上面「设备直连」连 USB）"
+    : "键盘设置：改按键映射 / 生成 C 代码（要下发也得先连 USB）";
+  document.body.dataset.top = rc ? "rc" : "kb";
+  if (save !== false){
+    try{ localStorage.setItem("kmTopTab", rc ? "rc" : "kb"); }catch(_){}
+  }
+}
+
+(function initTopTab(){
+  let v = "kb";
+  try{ v = localStorage.getItem("kmTopTab") || "kb"; }catch(_){}
+  if ($("top-kb")) $("top-kb").addEventListener("click", () => setTopTab("kb"));
+  if ($("top-rc")) $("top-rc").addEventListener("click", () => setTopTab("rc"));
+  setTopTab(v, false);
+})();
+
+/* ---- 宏面板：初始化 + 绑定按钮 ---- */
+macInit();
+macBindUI();
+window.macReady = true;
+
+/* ============================================================
+   12. 启动
+   ============================================================ */
+renderAll();
+macRenderAll();
+
+/* 键值列表项数直接从数据算，避免改了列表忘了改说明文字 */
+$("usagecount").textContent = HID_USAGE.length;
+
+/* 设备直连面板：绑定按钮 + 检测浏览器能力 */
+devBindUI();
+devLogEnv();
+if (!devState.supported){
+  devLog("当前浏览器不支持 Web Serial，设备直连不可用。请用 Chrome / Edge 打开。", "t-er");
+}else{
+  devLog("浏览器支持 Web Serial，可以连接设备。", "t-ok");
+}
+/* ============================================================
+   8.7 遥控模式三张表（动作目录 / 动作编号表 / 设备绑定）
+   ------------------------------------------------------------
+   对应固件 keyboard/kmap_proto.h 的 0x40~0x47 八条命令，
+   表本体在 rf24/rc_table.c（数据 Flash 双 bank）。
+
+   【重要】SET_* 每条都会**整块重写一个 bank**（擦 8 页 + 写 8 页，
+   几十毫秒）。所以不能"边填边发"，必须攒到用户点「写入设备」再统一写。
+   ============================================================ */
+const RC = {
+  NAME_MAX:   10,
+  NAME_FIELD: 11,
+  DEV_FIELD:  20,
+  OP_N:       12,
+  OP_NAME: ["K1","K2","K3","K4","K5","K6","K7","K8","K9","左转","右转","单击"]
+};
+
+let rcData = { cat: [], tbl: [], bind: [] };
+let rcSel  = 0;
+
+function rcBytes2Str(b, off, n){
+  let s = "";
+  for (let i = 0; i < n; i++){
+    const c = (b && b[off + i]) || 0;
+    if (!c) break;
+    s += String.fromCharCode(c);
+  }
+  return s;
+}
+function rcStr2Bytes(s, n){
+  const out = new Array(n).fill(0);
+  s = s || "";
+  for (let i = 0; i < n - 1 && i < s.length; i++) out[i] = s.charCodeAt(i) & 0xFF;
+  return out;
+}
+function rcNameOk(s, max){
+  if (!s || !s.length || s.length > max) return false;
+  return /^[0-9A-Za-z]+$/.test(s);
+}
+
+function rcSetStatus(msg, cls){
+  const el = $("rc-status");
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = (cls === "err") ? "#dc2626" : (cls === "ok" ? "#047857" : "#6b7280");
+}
+
+function rcCatOptions(curId, withNone){
+  let h = withNone ? '<option value="0">（无）</option>' : "";
+  for (const e of rcData.cat){
+    h += '<option value="' + e.id + '"' + (e.id === curId ? " selected" : "") + ">"
+       + "[" + e.id + "] " + (e.name || "(无名)") + "</option>";
+  }
+  if (!withNone && curId && !rcData.cat.some(e => e.id === curId)){
+    h += '<option value="' + curId + '" selected>[' + curId + "] (未定义)</option>";
+  }
+  return h;
+}
+
+function rcRenderCat(){
+  const w = $("rc-cat");
+  if (!w) return;
+  let h = "";
+  rcData.cat.forEach((e, i) => {
+    h += '<div class="row">'
+       + '<input class="rc-in num" type="number" min="1" max="63" value="' + (e.id || 1) + '" data-i="' + i + '" data-f="id">'
+       + '<input class="rc-in" maxlength="10" placeholder="名称" value="' + (e.name || "") + '" data-i="' + i + '" data-f="name">'
+       + '<button class="rc-x" data-i="' + i + '" data-act="cat-del" title="删除">&times;</button>'
+       + "</div>";
+  });
+  w.innerHTML = h || '<p class="hint" style="margin:0;">（空）点下面「+ 加一条」开始。</p>';
+}
+
+function rcRenderTblSel(){
+  const s = $("rc-tbl-sel");
+  if (!s) return;
+  let h = "";
+  rcData.tbl.forEach((t, i) => {
+    h += '<option value="' + i + '"' + (i === rcSel ? " selected" : "") + ">"
+       + (t.name || "(无名)") + "</option>";
+  });
+  s.innerHTML = h || '<option value="-1">（还没有表）</option>';
+}
+
+function rcRenderTbl(){
+  const w = $("rc-tbl");
+  if (!w) return;
+  const t = rcData.tbl[rcSel];
+  if (!t){ w.innerHTML = '<p class="hint" style="margin:0;">点上面「+ 新表」加一张动作编号表。</p>'; return; }
+
+  let h = "";
+  for (let k = 0; k < RC.OP_N; k++){
+    const v  = t.key_num[k] || 0;
+    const ok = !v || rcData.cat.some(e => e.id === v);
+    h += '<div class="rc-cell">'
+       + '<div class="lbl">' + RC.OP_NAME[k] + " · key_id " + (k + 1) + "</div>"
+       + '<select data-k="' + k + '">' + rcCatOptions(v, true) + "</select>"
+       + '<input type="number" min="0" max="63" value="' + v + '" data-k="' + k + '"'
+       + (ok ? "" : ' class="bad" title="动作目录里没有这个编号，从机照样执行，只是屏幕上显示不出名字"')
+       + ">"
+       + "</div>";
+  }
+  w.innerHTML = h;
+}
+
+function rcRenderBind(){
+  const w = $("rc-bind");
+  if (!w) return;
+  let h = "";
+  rcData.bind.forEach((b, i) => {
+    let opts = '<option value="">（未选）</option>';
+    for (const t of rcData.tbl){
+      opts += '<option value="' + t.name + '"' + (t.name === b.tbl ? " selected" : "") + ">"
+            + (t.name || "(无名)") + "</option>";
+    }
+    h += '<div class="row">'
+       + '<input class="rc-in" maxlength="20" placeholder="设备名" value="' + (b.dev || "") + '" data-i="' + i + '" data-f="dev">'
+       + '<span class="hint" style="margin:0;">&rarr;</span>'
+       + '<select class="rc-sel" data-i="' + i + '" data-f="tbl">' + opts + "</select>"
+       + '<button class="rc-x" data-i="' + i + '" data-act="bind-del" title="删除">&times;</button>'
+       + "</div>";
+  });
+  w.innerHTML = h || '<p class="hint" style="margin:0;">（空）点下面「+ 加一台设备」开始。</p>';
+}
+
+function rcRenderAll(){
+  rcRenderCat(); rcRenderTblSel(); rcRenderTbl(); rcRenderBind();
+  const n = $("rc-tbl-name");
+  if (n) n.value = (rcData.tbl[rcSel] && rcData.tbl[rcSel].name) || "";
+}
+
+async function rcLoadAll(){
+  try{
+    rcSetStatus("读取中…");
+    const c = (await devSend(KP.CMD.RC_GET_COUNTS, [], 2000)).payload;
+    const nc = c[0] || 0, nt = c[1] || 0, nb = c[2] || 0;
+
+    rcData.cat = [];
+    for (let i = 0; i < nc; i++){
+      const p = (await devSend(KP.CMD.RC_GET_CATALOG, [i], 2000)).payload;
+      rcData.cat.push({ id: p[0] || 0, name: rcBytes2Str(p, 1, RC.NAME_FIELD) });
+    }
+
+    rcData.tbl = [];
+    for (let i = 0; i < nt; i++){
+      const p = (await devSend(KP.CMD.RC_GET_TBL, [i], 2000)).payload;
+      const kn = [];
+      for (let k = 0; k < RC.OP_N; k++) kn.push(p[RC.NAME_FIELD + k] || 0);
+      rcData.tbl.push({ name: rcBytes2Str(p, 0, RC.NAME_FIELD), key_num: kn });
+    }
+
+    rcData.bind = [];
+    for (let i = 0; i < nb; i++){
+      const p = (await devSend(KP.CMD.RC_GET_BIND, [i], 2000)).payload;
+      rcData.bind.push({
+        dev: rcBytes2Str(p, 0, RC.DEV_FIELD),
+        tbl: rcBytes2Str(p, RC.DEV_FIELD, RC.NAME_FIELD)
+      });
+    }
+
+    rcSel = 0;
+    rcRenderAll();
+    rcSetStatus("读取完成：目录 " + nc + " 条 · 编号表 " + nt + " 张 · 绑定 " + nb + " 台。", "ok");
+  }catch(err){
+    rcSetStatus("读取失败：" + err.message, "err");
+  }
+}
+
+async function rcSaveAll(){
+  for (const e of rcData.cat){
+    if (!rcNameOk(e.name, RC.NAME_MAX)){
+      rcSetStatus("① 动作目录里编号 " + e.id + " 的名称不合法（只能是 1~10 个字母/数字）。", "err");
+      return;
+    }
+  }
+  for (const t of rcData.tbl){
+    if (!rcNameOk(t.name, RC.NAME_MAX)){ rcSetStatus("② 表名「" + t.name + "」不合法（只能是 1~10 个字母/数字）。", "err"); return; }
+  }
+  for (const b of rcData.bind){
+    if (!rcNameOk(b.dev, RC.NAME_MAX)){ rcSetStatus("③ 设备名「" + b.dev + "」不合法（只能是 1~10 个字母/数字）。", "err"); return; }
+    if (!rcData.tbl.some(t => t.name === b.tbl)){ rcSetStatus("③ 设备「" + b.dev + "」绑的表「" + b.tbl + "」不存在。", "err"); return; }
+  }
+
+  try{
+    const total = rcData.cat.length + rcData.tbl.length + rcData.bind.length;
+    rcSetStatus("写入中…（" + total + " 条，每条几十毫秒，别关页面）");
+
+    for (const e of rcData.cat){
+      await devSend(KP.CMD.RC_SET_CATALOG, [e.id].concat(rcStr2Bytes(e.name, RC.NAME_FIELD)), 3000);
+    }
+    for (const t of rcData.tbl){
+      await devSend(KP.CMD.RC_SET_TBL, rcStr2Bytes(t.name, RC.NAME_FIELD).concat(t.key_num), 3000);
+    }
+    for (const b of rcData.bind){
+      await devSend(KP.CMD.RC_SET_BIND,
+        rcStr2Bytes(b.dev, RC.DEV_FIELD).concat(rcStr2Bytes(b.tbl, RC.NAME_FIELD)), 3000);
+    }
+    await devSend(KP.CMD.RC_SAVE, [], 3000);
+
+    rcSetStatus("写入完成（" + total + " 条）。掉电不丢。", "ok");
+  }catch(err){
+    rcSetStatus("写入失败：" + err.message, "err");
+  }
+}
+
+function rcWire(){
+  if (!$("rc-load")) return;
+
+  $("rc-load").onclick  = () => rcLoadAll();
+  $("rc-save").onclick  = () => rcSaveAll();
+  $("rc-clear").onclick = () => {
+    rcData = { cat: [], tbl: [], bind: [] };
+    rcSel = 0; rcRenderAll();
+    rcSetStatus("已清空（只改了页面，点「写入设备」才真正落到设备上）。");
+  };
+
+  $("rc-cat-add").onclick = () => {
+    let id = 1;
+    while (rcData.cat.some(e => e.id === id)) id++;
+    if (id > 63){ rcSetStatus("① 动作目录最多 63 条。", "err"); return; }
+    rcData.cat.push({ id: id, name: "act" + id });
+    rcRenderCat(); rcRenderTbl();
+    rcSetStatus("加了一条编号 " + id + "（记得改名后点「写入设备」）。");
+  };
+  $("rc-cat").addEventListener("input", ev => {
+    const i = ev.target.dataset.i, f = ev.target.dataset.f;
+    if (i === undefined || !f) return;
+    const e = rcData.cat[+i];
+    if (!e) return;
+    if (f === "id"){
+      let v = parseInt(ev.target.value, 10);
+      if (isNaN(v)) v = 1;
+      e.id = Math.max(1, Math.min(63, v));
+    }else{
+      e.name = ev.target.value;
+    }
+    rcRenderTblSel(); rcRenderTbl();
+  });
+  $("rc-cat").addEventListener("click", ev => {
+    if (ev.target.dataset.act !== "cat-del") return;
+    rcData.cat.splice(+ev.target.dataset.i, 1);
+    rcRenderCat(); rcRenderTbl();
+  });
+
+  $("rc-tbl-sel").onchange = ev => { rcSel = +ev.target.value; rcRenderAll(); };
+  $("rc-tbl-add").onclick = () => {
+    if (rcData.tbl.length >= 16){ rcSetStatus("② 最多 16 张表。", "err"); return; }
+    let n = 1;
+    while (rcData.tbl.some(t => t.name === ("tbl" + n))) n++;
+    rcData.tbl.push({ name: "tbl" + n, key_num: new Array(RC.OP_N).fill(0) });
+    rcSel = rcData.tbl.length - 1;
+    rcRenderAll();
+    rcSetStatus("加了一张表 tbl" + n + "（记得改名后点「写入设备」）。");
+  };
+  $("rc-tbl-del").onclick = () => {
+    if (!rcData.tbl.length) return;
+    rcData.tbl.splice(rcSel, 1);
+    rcSel = Math.max(0, Math.min(rcSel, rcData.tbl.length - 1));
+    rcRenderAll();
+  };
+  $("rc-tbl-rename").onclick = () => {
+    const t = rcData.tbl[rcSel];
+    if (!t) return;
+    t.name = $("rc-tbl-name").value.trim();
+    rcRenderAll();
+  };
+  $("rc-tbl").addEventListener("change", ev => {
+    const t = rcData.tbl[rcSel];
+    const k = ev.target.dataset.k;
+    if (!t || k === undefined) return;
+    t.key_num[+k] = parseInt(ev.target.value, 10) || 0;
+    rcRenderTbl();
+  });
+  $("rc-tbl").addEventListener("input", ev => {
+    const t = rcData.tbl[rcSel];
+    const k = ev.target.dataset.k;
+    if (!t || k === undefined || ev.target.tagName !== "INPUT") return;
+    t.key_num[+k] = Math.max(0, Math.min(63, parseInt(ev.target.value, 10) || 0));
+    const sel = ev.target.parentNode.querySelector("select");
+    if (sel) sel.value = String(t.key_num[+k]);
+    const ok = !t.key_num[+k] || rcData.cat.some(e => e.id === t.key_num[+k]);
+    ev.target.classList.toggle("bad", !ok);
+  });
+
+  $("rc-bind-add").onclick = () => {
+    if (rcData.bind.length >= 20){ rcSetStatus("③ 最多 20 台设备（配置留存，同时在线最多 6 台）。", "err"); return; }
+    rcData.bind.push({ dev: "dev" + (rcData.bind.length + 1), tbl: (rcData.tbl[0] && rcData.tbl[0].name) || "" });
+    rcRenderBind();
+  };
+  $("rc-bind").addEventListener("input", ev => {
+    const i = ev.target.dataset.i, f = ev.target.dataset.f;
+    if (i === undefined || f !== "dev") return;
+    rcData.bind[+i].dev = ev.target.value;
+  });
+  $("rc-bind").addEventListener("change", ev => {
+    const i = ev.target.dataset.i, f = ev.target.dataset.f;
+    if (i === undefined || f !== "tbl") return;
+    rcData.bind[+i].tbl = ev.target.value;
+  });
+  $("rc-bind").addEventListener("click", ev => {
+    if (ev.target.dataset.act !== "bind-del") return;
+    rcData.bind.splice(+ev.target.dataset.i, 1);
+    rcRenderBind();
+  });
+}
+
+rcWire();
+rcRenderAll();
+</script>
+</body>
+</html>
